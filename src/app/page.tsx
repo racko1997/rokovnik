@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { HeroScene } from "@/components/landing/hero-scene";
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { AgentVisual, BookingVisual, ShiftsVisual } from "@/components/landing/visuals";
 import { ButtonLink } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/brand";
@@ -70,6 +71,7 @@ const FAQ = [
 export default function Home() {
   return (
     <div className="min-h-dvh overflow-x-clip">
+      <ScrollReveal />
       <header className="sticky top-0 z-40 border-b border-transparent bg-porcelain/85 backdrop-blur supports-[backdrop-filter]:bg-porcelain/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <BrandMark />
@@ -96,7 +98,7 @@ export default function Home() {
       <main>
         {/* Uvod */}
         <section className="mx-auto grid max-w-6xl items-center gap-16 px-4 pt-12 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pt-20">
-          <div>
+          <div data-reveal="up">
             <p className="inline-flex items-center gap-2 rounded-full bg-paper px-3 py-1 text-sm text-ink-soft ring-1 ring-line">
               <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Za frizerske i kozmetičke salone u BiH
             </p>
@@ -126,16 +128,18 @@ export default function Home() {
               ))}
             </ul>
           </div>
-          <HeroScene />
+          <div data-reveal="scale" className="reveal-delay-1">
+            <HeroScene />
+          </div>
         </section>
 
         {/* Problem */}
         <section className="border-y border-line bg-paper/60">
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <h2 className="max-w-2xl font-display text-3xl leading-tight sm:text-4xl">Zvuči poznato?</h2>
-            <div className="mt-10 grid gap-8 md:grid-cols-3">
+            <h2 data-reveal="up" className="max-w-2xl font-display text-3xl leading-tight sm:text-4xl">Zvuči poznato?</h2>
+            <div className="reveal-stagger mt-10 grid gap-8 md:grid-cols-3">
               {PAINS.map(({ icon: Icon, title, text }) => (
-                <div key={title}>
+                <div key={title} data-reveal="up">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-lacquer-wash text-lacquer">
                     <Icon size={18} />
                   </span>
@@ -177,7 +181,7 @@ export default function Home() {
         {/* AI recepcioner */}
         <section id="recepcioner" className="scroll-mt-20 bg-ink text-porcelain">
           <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 py-24 sm:px-6 lg:grid-cols-2">
-            <div>
+            <div data-reveal="up">
               <p className="text-sm font-medium text-porcelain/60">AI recepcioner</p>
               <h2 className="mt-2 font-display text-4xl leading-tight sm:text-5xl">Odgovara kao vaša najbolja recepcionerka. I u ponoć.</h2>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-porcelain/70">
@@ -199,7 +203,7 @@ export default function Home() {
                 ))}
               </ul>
             </div>
-            <div className="text-ink">
+            <div data-reveal="scale" className="reveal-delay-1 text-ink">
               <AgentVisual />
             </div>
           </div>
@@ -208,14 +212,14 @@ export default function Home() {
         {/* Kanali */}
         <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
           <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <div>
+            <div data-reveal="up">
               <h2 className="font-display text-4xl leading-tight">Jedan recepcioner, svi kanali</h2>
               <p className="mt-4 max-w-md text-lg leading-relaxed text-ink-soft">
                 Klijenti pišu gdje im je zgodno. Isti recepcioner, s istim pravilima, odgovara na svakom kanalu — a sve završava u jednom
                 kalendaru.
               </p>
             </div>
-            <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-paper ring-1 ring-line">
+            <ul data-reveal="scale" className="reveal-delay-1 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-paper ring-1 ring-line">
               {CHANNELS.map((c) => (
                 <li key={c.name} className="flex items-center justify-between gap-4 px-5 py-4">
                   <span className="flex items-center gap-3 font-medium">
@@ -244,14 +248,14 @@ export default function Home() {
         {/* Koraci */}
         <section className="border-y border-line bg-paper/60">
           <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-            <h2 className="max-w-2xl font-display text-4xl leading-tight">Postavljanje traje koliko i jedno feniranje.</h2>
-            <ol className="mt-12 grid gap-10 md:grid-cols-3">
+            <h2 data-reveal="up" className="max-w-2xl font-display text-4xl leading-tight">Postavljanje traje koliko i jedno feniranje.</h2>
+            <ol className="reveal-stagger mt-12 grid gap-10 md:grid-cols-3">
               {[
                 ["Unesite usluge", "Naziv, trajanje i cijenu. „Od 60 KM“ za usluge gdje cijena zavisi od kose."],
                 ["Dodajte radnike", "Ko radi kada i koje usluge. Podijeljene smjene, pauze i smjene na dvije sedmice."],
                 ["Podijelite link", "Stavite ga u Instagram bio i na Google profil — i uključite recepcionera."],
               ].map(([title, text], i) => (
-                <li key={title} className="border-t-2 border-ink pt-5">
+                <li key={title} data-reveal="up" className="border-t-2 border-ink pt-5">
                   <span className="tabular font-display text-2xl text-lacquer">{i + 1}.</span>
                   <h3 className="mt-1 text-lg font-semibold">{title}</h3>
                   <p className="mt-1.5 leading-relaxed text-ink-soft">{text}</p>
@@ -263,7 +267,7 @@ export default function Home() {
 
         {/* Pilot */}
         <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-          <div className="grid items-center gap-10 rounded-[1.75rem] bg-paper p-8 ring-1 ring-line sm:p-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <div data-reveal="scale" className="grid items-center gap-10 rounded-[1.75rem] bg-paper p-8 ring-1 ring-line sm:p-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <div>
               <p className="text-sm font-medium text-lacquer">Pilot program</p>
               <h2 className="mt-2 font-display text-4xl leading-tight">Prvi saloni koriste {APP_NAME} besplatno</h2>
@@ -292,8 +296,8 @@ export default function Home() {
 
         {/* Pitanja */}
         <section id="pitanja" className="mx-auto max-w-3xl scroll-mt-20 px-4 pb-24 sm:px-6">
-          <h2 className="font-display text-4xl leading-tight">Česta pitanja</h2>
-          <div className="mt-8 divide-y divide-line border-y border-line">
+          <h2 data-reveal="up" className="font-display text-4xl leading-tight">Česta pitanja</h2>
+          <div data-reveal="up" className="reveal-delay-1 mt-8 divide-y divide-line border-y border-line">
             {FAQ.map((f) => (
               <details key={f.q} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium">
@@ -308,7 +312,7 @@ export default function Home() {
 
         {/* Završni poziv */}
         <section className="bg-ink text-porcelain">
-          <div className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div data-reveal="up" className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">Manje telefoniranja. Više vremena za klijenta u stolici.</h2>
             <div className="flex flex-wrap gap-3">
               <ButtonLink href="/registracija" size="lg">
@@ -350,7 +354,7 @@ function Feature({
 }) {
   return (
     <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-      <div className={reverse ? "lg:order-2" : ""}>
+      <div data-reveal={reverse ? "right" : "left"} className={reverse ? "lg:order-2" : ""}>
         <p className="text-sm font-medium text-lacquer">{eyebrow}</p>
         <h2 className="mt-2 font-display text-4xl leading-tight">{title}</h2>
         <p className="mt-4 text-lg leading-relaxed text-ink-soft">{text}</p>
@@ -363,7 +367,7 @@ function Feature({
           ))}
         </ul>
       </div>
-      <div className={reverse ? "lg:order-1" : ""}>{visual}</div>
+      <div data-reveal="scale" className={`${reverse ? "lg:order-1" : ""} reveal-delay-1`}>{visual}</div>
     </div>
   );
 }

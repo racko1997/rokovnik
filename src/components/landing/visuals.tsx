@@ -88,14 +88,17 @@ export function BookingVisual() {
   ] as const;
   const slots = ["10:00", "10:15", "10:45", "11:30", "13:00", "13:15", "14:30", "16:00"];
   return (
-    <div aria-hidden className="mx-auto w-[17.5rem] rounded-[2.25rem] bg-ink p-2.5 shadow-[var(--shadow-pop)]">
-      <div className="overflow-hidden rounded-[1.75rem] bg-porcelain">
-        <div className="bg-paper px-4 pt-6 pb-3">
+    <div
+      aria-hidden
+      className="booking-phone mx-auto flex min-h-[28.5rem] w-[17.5rem] rounded-[2.25rem] bg-ink p-2.5 shadow-[var(--shadow-pop)]"
+    >
+      <div className="flex min-h-full flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-porcelain">
+        <div className="bg-paper px-4 pt-7 pb-5">
           <p className="text-[0.6875rem] text-ink-soft">Sarajevo · Ferhadija 12</p>
           <p className="font-display text-xl leading-tight">Studio Lana</p>
         </div>
-        <div className="space-y-3 p-3">
-          <div className="rounded-xl bg-paper p-3 ring-1 ring-line">
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <div className="rounded-xl bg-paper p-3.5 ring-1 ring-line">
             <p className="flex items-center justify-between text-xs">
               <span className="font-medium">Muško šišanje · 30 min</span>
               <span className="tabular font-semibold">15 KM</span>
@@ -104,7 +107,7 @@ export function BookingVisual() {
               <Swatch color="plavocrna" size="sm" /> kod: Dino
             </p>
           </div>
-          <div className="rounded-xl bg-paper p-3 ring-1 ring-line">
+          <div className="rounded-xl bg-paper p-3.5 ring-1 ring-line">
             <div className="flex gap-1">
               {days.map(([d, n, free], i) => (
                 <span
@@ -132,7 +135,7 @@ export function BookingVisual() {
               ))}
             </div>
           </div>
-          <span className="block rounded-full bg-lacquer py-2.5 text-center text-xs font-medium text-white">Potvrdi termin</span>
+          <span className="mt-auto block rounded-full bg-lacquer py-3 text-center text-xs font-medium text-white">Potvrdi termin</span>
         </div>
       </div>
     </div>
