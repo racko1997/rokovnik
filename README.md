@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rokovnik
 
-## Getting Started
+Sistem za zakazivanje termina za frizerske i kozmetičke salone, uz AI recepcionera
+(poruke, a kasnije i telefonski pozivi). "Rokovnik" je radni naziv — mijenja se u `src/lib/brand.ts`.
 
-First, run the development server:
+## Pokretanje (lokalno, Windows/macOS/Linux)
+
+Potrebno: Node.js 22+. Docker nije potreban — baza je pravi PostgreSQL iz npm paketa.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env          # pa upisati BETTER_AUTH_SECRET
+npm run db:start              # terminal 1: baza (ostaviti upaljeno)
+npm run db:migrate            # terminal 2: tabele
+npm run db:seed               # demo salon "Studio Lana"
+npm run dev                   # http://localhost:3100
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo nalog (samo lokalno): `demo@rokovnik.test` / `demo12345` · javna stranica: `/s/studio-lana`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Komanda | Šta radi |
+| --- | --- |
+| `npm test` | brzi testovi (računanje termina, vremenske zone) |
+| `npm run test:db` | integracioni testovi nad bazom (dupli termini, istovremene rezervacije) |
+| `npm run db:generate` | nova migracija nakon izmjene sheme |
+| `npm run db:studio` | pregled baze u pregledniku |
+| `npm run typecheck` | TypeScript provjera |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Arhitektura
 
-## Learn More
+```
+src/
+  server/
+    db/schema/      Drizzle shema (auth + domen). Svaka tabela ima salon_id.
+    domain/         Čista logika bez baze: računanje slobodnih termina, vremenske zone.
+    services/       Poslovna pravila: booking, staff, catalog, clients, salons.
+    context.ts      Ko je prijavljen i koji salon je aktivan.
+    action.ts       Omotač za server akcije (greške → poruke za korisnika).
+  app/
+    (auth)/         Prijava, registracija, novi salon
+    app/            Dashboard: kalendar, usluge, radnici, postavke
+    s/[slug]/       Javna stranica salona za online zakazivanje
+    api/            Slobodni termini i pretraga klijenata (JSON)
+  components/       UI komponente (dugmad, polja, panel, uzorak boje)
+  lib/              Formatiranje, telefoni, slug, paleta boja radnika
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Pravila kojih se držimo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **AI nikad ne računa slobodne termine.** Računa ih `domain/availability.ts`, a AI agent
+   (faza 2) samo poziva iste servisne funkcije kao dashboard i javna stranica:
+   `getAvailability`, `createAppointment`, `setAppointmentStatus`.
+2. **Baza je posljednja odbrana od duplih termina.** `appointment_items` ima exclusion
+   constraint (migracija `0001`) — preklapanje kod istog radnika je nemoguće, čak i kad
+   recepcija i AI zakazuju u istoj milisekundi.
+3. **Vrijeme:** u bazi su UTC trenuci, radno vrijeme je u lokalnim minutama, a konverzija
+   (uključujući ljetno/zimsko vrijeme) dešava se samo u `domain/time.ts`.
+4. **Multi-tenant:** servisi uvijek primaju `salonId` i filtriraju po njemu. Servisi ne znaju
+   za HTTP sesiju, pa ih mogu zvati i webhookovi (Instagram, WhatsApp, Viber) i voice agent.
+5. **Klijent = broj telefona** (E.164, `+387…`). Isti broj sa weba, Instagrama ili poziva je
+   isti klijent.
+6. **Posjeta sa više usluga** (npr. šišanje + feniranje) je jedan `appointment` sa više
+   `appointment_items`; cijena i naziv usluge se snimaju u trenutku rezervacije.
+7. **Uloge:** `owner` / `manager` mijenjaju cjenovnik i radnike, `staff` vidi i upisuje termine.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## AI recepcioner
 
-## Deploy on Vercel
+`src/server/agent/` — jedan modul za sve kanale:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `receptionist.ts` — petlja: poruka klijenta → OpenAI (Responses API) → alati → odgovor
+- `tools.ts` — alati: slobodni termini, rezervacija, termini klijenta, otkazivanje, prebacivanje osoblju
+- `prompt.ts` — uputstva + činjenice o salonu (usluge, radnici, kalendar narednih 15 dana)
+- `conversations.ts` — razgovori i poruke (vidljivo u dashboardu → Razgovori, s detaljima svakog alata)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Podešavanje u `.env`: `OPENAI_API_KEY`, `OPENAI_MODEL` (zadano `gpt-5.4-mini`),
+`OPENAI_REASONING_EFFORT` (`low` zadano; `none` za modele bez razmišljanja).
+Web chat se pojavljuje na `/s/[slug]` samo kad je ključ postavljen.
+
+## Supabase
+
+1. Novi projekat na supabase.com (region: Frankfurt, `eu-central-1`).
+2. Project Settings → Database → Connection string:
+   `DATABASE_URL` i `DIRECT_URL` = **Session pooler** (port 5432).
+   Ne koristiti Transaction pooler (6543): dijeli transakcije na više konekcija i gubi upise.
+   Aplikacija odbija da se pokrene s njim.
+3. `npm run db:migrate` (i po želji `npm run db:seed`).
+
+Migracija `0003` uključuje RLS na svim tabelama bez politika, tako da Supabase REST API
+(javni anon ključ) ne vidi podatke; aplikacija se spaja direktno i radi normalno.
+**Nova tabela → u istoj migraciji dodati `ALTER TABLE … ENABLE ROW LEVEL SECURITY`.**
+
+## Plan
+
+- [x] **Faza 1** — nalozi i saloni, radnici (smjene, pauze, odsustva), usluge, kalendar,
+      ručni upis, javna stranica za zakazivanje, zaštita od duplih termina
+- [x] **Faza 2a** — AI recepcioner u web chatu (OpenAI, alati nad servisima), pregled razgovora
+- [ ] **Faza 2b** — podsjetnici (SMS/Viber), odgovor osoblja iz dashboarda
+- [ ] **Faza 3** — Instagram/Messenger, WhatsApp, Viber
+- [ ] **Faza 4** — glasovni agent (OpenAI Realtime + SIP/preusmjeravanje poziva)
+- [ ] **Faza 5** — pretplate, statistika, prilagođeni domeni
+
+## Produkcija (kasnije)
+
+Bilo koji PostgreSQL 14+ (Supabase, Neon, vlastiti server) — samo `DATABASE_URL`.
+Aplikacija je standardni Next.js (Vercel ili vlastiti Node server).
