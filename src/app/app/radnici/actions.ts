@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { runAction } from "@/server/action";
-import { requireManager } from "@/server/context";
+import { requirePermission } from "@/server/context";
 import { addDays, isLocalDate, zonedToUtc } from "@/server/domain/time";
 import { addTimeOff, removeTimeOff, saveStaff, setStaffActive, type staffInput } from "@/server/services/staff";
 
 export async function saveStaffAction(id: string | null, input: z.input<typeof staffInput>) {
   return runAction(async () => {
-    const { salon } = await requireManager();
+    const { salon } = await requirePermission("manageStaff");
     const staffId = await saveStaff(salon.id, id, input);
     revalidatePath("/app", "layout");
     return staffId;
@@ -18,7 +18,7 @@ export async function saveStaffAction(id: string | null, input: z.input<typeof s
 
 export async function setStaffActiveAction(id: string, active: boolean) {
   return runAction(async () => {
-    const { salon } = await requireManager();
+    const { salon } = await requirePermission("manageStaff");
     await setStaffActive(salon.id, id, active);
     revalidatePath("/app", "layout");
   });
@@ -37,7 +37,7 @@ const timeOffForm = z.object({
 /** Datumi i sati su u lokalnom vremenu salona — pretvaramo ih ovdje. */
 export async function addTimeOffAction(raw: z.input<typeof timeOffForm>) {
   return runAction(async () => {
-    const { salon } = await requireManager();
+    const { salon } = await requirePermission("manageShifts");
     const input = timeOffForm.parse(raw);
     const allDay = input.startMin === null || input.endMin === null;
     await addTimeOff(salon.id, {
@@ -54,7 +54,7 @@ export async function addTimeOffAction(raw: z.input<typeof timeOffForm>) {
 
 export async function removeTimeOffAction(id: string) {
   return runAction(async () => {
-    const { salon } = await requireManager();
+    const { salon } = await requirePermission("manageShifts");
     await removeTimeOff(salon.id, id);
     revalidatePath("/app", "layout");
   });

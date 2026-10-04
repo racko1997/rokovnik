@@ -8,7 +8,8 @@ import { DomainError } from "../errors";
 export type Service = typeof services.$inferSelect;
 export type ServiceWithStaff = Service & { staffIds: string[]; categoryName: string | null };
 
-export const serviceInput = z.object({
+export const serviceInput = z
+  .object({
   name: z.string().trim().min(2, "Unesite naziv usluge.").max(80),
   description: z
     .string()
@@ -24,12 +25,19 @@ export const serviceInput = z.object({
     .transform((v) => v || null),
   durationMin: z.coerce.number().int().min(5, "Najkraće trajanje je 5 min.").max(600),
   bufferMin: z.coerce.number().int().min(0).max(120).default(0),
+  /** Vrijeme djelovanja: počinje nakon gapStartMin minuta i traje gapMin (0 = bez) */
+  gapStartMin: z.coerce.number().int().min(0).max(600).default(0),
+  gapMin: z.coerce.number().int().min(0).max(300).default(0),
   /** U KM, npr. 25 ili 25.5 */
   price: z.coerce.number().min(0, "Cijena ne može biti negativna.").max(100000),
   priceFrom: z.coerce.boolean().default(false),
   bookableOnline: z.coerce.boolean().default(true),
   staffIds: z.array(z.uuid()).default([]),
-});
+  })
+  .refine((v) => v.gapMin === 0 || (v.gapStartMin > 0 && v.gapStartMin + v.gapMin < v.durationMin), {
+    message: "Vrijeme djelovanja mora početi nakon početka i završiti prije kraja usluge.",
+    path: ["gapMin"],
+  });
 
 export async function listServices(
   salonId: string,
@@ -82,6 +90,8 @@ export async function saveService(salonId: string, id: string | null, raw: z.inp
       categoryId,
       durationMin: input.durationMin,
       bufferMin: input.bufferMin,
+      gapStartMin: input.gapMin > 0 ? input.gapStartMin : 0,
+      gapMin: input.gapMin,
       priceCents: Math.round(input.price * 100),
       priceFrom: input.priceFrom,
       bookableOnline: input.bookableOnline,

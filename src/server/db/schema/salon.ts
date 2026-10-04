@@ -86,6 +86,30 @@ export const salonMembers = pgTable(
   (t) => [primaryKey({ columns: [t.salonId, t.userId] }), index().on(t.userId)],
 );
 
+/**
+ * Pozivnica za pristup salonu (radnik ili menadžer). Link sadrži token; u bazi
+ * čuvamo samo njegov hash. Važi 7 dana i može se iskoristiti jednom.
+ */
+export const salonInvites = pgTable(
+  "salon_invites",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    salonId: uuid()
+      .notNull()
+      .references(() => salons.id, { onDelete: "cascade" }),
+    email: text(),
+    role: memberRole().notNull().default("staff"),
+    staffId: uuid().references(() => staff.id, { onDelete: "set null" }),
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamp(tz).notNull(),
+    acceptedAt: timestamp(tz),
+    acceptedByUserId: text().references(() => user.id, { onDelete: "set null" }),
+    createdByUserId: text().references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index().on(t.salonId)],
+);
+
 export const staff = pgTable(
   "staff",
   {
@@ -227,6 +251,12 @@ export const services = pgTable(
     durationMin: integer().notNull(),
     /** Vrijeme nakon usluge (čišćenje, priprema) — radnik je zauzet, klijent ne vidi. */
     bufferMin: integer().notNull().default(0),
+    /**
+     * Vrijeme djelovanja (npr. boja, pramenovi): od minute `gapStartMin` od početka usluge,
+     * `gapMin` minuta radnik je slobodan za drugog klijenta. 0 = bez djelovanja.
+     */
+    gapStartMin: integer().notNull().default(0),
+    gapMin: integer().notNull().default(0),
     /** Cijena u feninzima/centima, da izbjegnemo greške zaokruživanja. */
     priceCents: integer().notNull(),
     /** "od 30 KM" — konačna cijena zavisi od dužine kose i sl. */
@@ -240,6 +270,10 @@ export const services = pgTable(
   (t) => [
     index().on(t.salonId),
     check("services_duration", sql`${t.durationMin} > 0 and ${t.bufferMin} >= 0`),
+    check(
+      "services_gap",
+      sql`${t.gapMin} = 0 or (${t.gapStartMin} > 0 and ${t.gapMin} > 0 and ${t.gapStartMin} + ${t.gapMin} < ${t.durationMin})`,
+    ),
     check("services_price", sql`${t.priceCents} >= 0`),
   ],
 );
@@ -335,6 +369,8 @@ export const appointmentItems = pgTable(
     blockedUntil: timestamp(tz).notNull(),
     /** false kad je posjeta otkazana — oslobađa termin. */
     active: boolean().notNull().default(true),
+    /** 0 = usluga (ili njen prvi dio), 1 = nastavak nakon vremena djelovanja */
+    part: smallint().notNull().default(0),
   },
   (t) => [
     index().on(t.salonId, t.startsAt),

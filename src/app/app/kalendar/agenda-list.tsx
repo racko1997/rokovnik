@@ -86,6 +86,11 @@ export function AgendaList({
                       {b.notes && <MessageSquareText size={13} className="shrink-0 text-ink-faint" aria-label="Ima napomenu" />}
                     </span>
                     <span className="block truncate text-sm text-ink-soft">{b.services.map((s) => s.name).join(" + ")}</span>
+                    {b.gaps.map((g) => (
+                      <span key={g.startMin} className="tabular block text-xs text-mint">
+                        djelovanje {formatClock(g.startMin)}–{formatClock(g.endMin)} · radnik slobodan
+                      </span>
+                    ))}
                     <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
                       {member && (
                         <span className="flex items-center gap-1 text-ink-soft">

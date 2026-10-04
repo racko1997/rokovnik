@@ -196,6 +196,7 @@ export function TimeGrid({
                   px={px}
                   tone={toneFor(b)}
                   conflict={conflictKeys.has(b.key)}
+                  indent={c.blocks.some((o) => o.key !== b.key && o.gaps.some((g) => b.startMin >= g.startMin && b.endMin <= g.endMin))}
                   onPointerDown={(e) => onBlockPointerDown(e, b, c.key)}
                   onClick={(e) => {
                     // Klik mišem obrađuje pointerup; ovo je za tastaturu i dodir
@@ -317,6 +318,7 @@ function Block({
   px,
   tone,
   conflict,
+  indent,
   ghost,
   saving,
   onPointerDown,
@@ -328,53 +330,90 @@ function Block({
   px: number;
   tone: BlockTone;
   conflict: boolean;
+  /** Termin upisan u vrijeme djelovanja drugog termina — uvučen da se vidi oboje */
+  indent?: boolean;
   ghost?: boolean;
   saving?: boolean;
   onPointerDown?: (e: React.PointerEvent) => void;
   onClick?: (e: React.MouseEvent) => void;
 }) {
+  const shift = startMin - b.startMin;
   const duration = b.endMin - b.startMin;
   const buffer = b.blockedMin - b.endMin;
-  const height = duration * px;
-  const compact = height < 46;
   const noShow = b.status === "no_show";
   const source = SOURCE_LABEL[b.source];
   const accent = conflict ? "var(--lacquer)" : tone.accent;
   const endMin = startMin + duration;
+  const x = indent ? "left-[30%] right-1" : "inset-x-1";
+
+  // Dijelovi u kojima radnik radi (između njih je vrijeme djelovanja)
+  const segments: [number, number][] = [];
+  let cursor = b.startMin;
+  for (const g of b.gaps) {
+    segments.push([cursor, g.startMin]);
+    cursor = g.endMin;
+  }
+  segments.push([cursor, b.endMin]);
+  const [firstStart, firstEnd] = segments[0];
+  const height = (firstEnd - firstStart) * px;
+  const compact = height < 46;
+
+  const handlers = {
+    onPointerDown,
+    onClick: (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onClick?.(e);
+    },
+    onMouseMove: (e: React.MouseEvent) => e.stopPropagation(),
+    tabIndex: ghost ? -1 : 0,
+  };
+  const segmentClass = clsx(
+    "absolute z-[1] flex flex-col overflow-hidden rounded-md text-left select-none",
+    x,
+    ghost ? "z-[3] cursor-grabbing shadow-[var(--shadow-pop)] ring-2 ring-ink/30" : "cursor-pointer transition-shadow hover:z-[2] hover:shadow-[var(--shadow-lift)]",
+    indent && "z-[2] shadow-[var(--shadow-lift)]",
+    saving && "animate-pulse",
+    noShow && "opacity-55",
+    conflict && "ring-2 ring-lacquer",
+  );
+  const segmentStyle = (from: number, to: number) => ({
+    top: (from + shift - dayStart) * px + 1,
+    height: (to - from) * px - 2,
+    background: conflict ? "var(--lacquer-wash)" : tone.fill,
+    boxShadow: `inset 3px 0 0 ${accent}`,
+  });
 
   return (
     <>
       {buffer > 0 && !ghost && (
         <div
-          className="pointer-events-none absolute inset-x-1 rounded-b-md [background-image:repeating-linear-gradient(135deg,transparent_0_4px,var(--line-strong)_4px_5px)]"
+          className={clsx("pointer-events-none absolute rounded-b-md [background-image:repeating-linear-gradient(135deg,transparent_0_4px,var(--line-strong)_4px_5px)]", x)}
           style={{ top: (b.endMin - dayStart) * px, height: buffer * px }}
           title="Pauza nakon usluge"
         />
       )}
-      <button
-        type="button"
-        onPointerDown={onPointerDown}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick?.(e);
-        }}
-        onMouseMove={(e) => e.stopPropagation()}
-        tabIndex={ghost ? -1 : 0}
-        className={clsx(
-          "absolute inset-x-1 z-[1] flex flex-col overflow-hidden rounded-md text-left select-none",
-          compact ? "justify-center px-2 py-0.5" : "px-2.5 py-1.5",
-          ghost ? "z-[3] cursor-grabbing shadow-[var(--shadow-pop)] ring-2 ring-ink/30" : "cursor-pointer transition-shadow hover:z-[2] hover:shadow-[var(--shadow-lift)]",
-          saving && "animate-pulse",
-          noShow && "opacity-55",
-          conflict && "ring-2 ring-lacquer",
-        )}
-        style={{
-          top: (startMin - dayStart) * px + 1,
-          height: height - 2,
-          background: conflict ? "var(--lacquer-wash)" : tone.fill,
-          boxShadow: `inset 3px 0 0 ${accent}`,
-        }}
-      >
+
+      {b.gaps.map((g, i) => (
+        // Djelovanje: radnik je slobodan — klik ovdje otvara novi termin
+        <div
+          key={i}
+          className={clsx("pointer-events-none absolute flex items-center overflow-hidden rounded-sm px-2", x)}
+          style={{
+            top: (g.startMin + shift - dayStart) * px,
+            height: (g.endMin - g.startMin) * px,
+            boxShadow: `inset 3px 0 0 color-mix(in oklab, ${accent} 40%, transparent)`,
+            backgroundImage: `repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, ${accent} 18%, transparent) 6px 8px)`,
+          }}
+        >
+          {(g.endMin - g.startMin) * px >= 22 && (
+            <span className="truncate text-[0.6875rem] font-medium" style={{ color: accent }}>
+              djelovanje {g.endMin - g.startMin} min · slobodno
+            </span>
+          )}
+        </div>
+      ))}
+
+      <button type="button" {...handlers} className={clsx(segmentClass, compact ? "justify-center px-2 py-0.5" : "px-2.5 py-1.5")} style={segmentStyle(firstStart, firstEnd)}>
         <span className={clsx("flex items-center gap-1.5 text-[0.875rem] leading-tight", compact && "truncate")}>
           <span className={clsx("truncate font-semibold", noShow && "line-through", tone.muted && "text-ink-soft")}>
             {b.client?.name ?? "Bez imena"}
@@ -407,6 +446,14 @@ function Block({
           </>
         )}
       </button>
+
+      {segments.slice(1).map(([from, to]) => (
+        <button key={from} type="button" {...handlers} className={clsx(segmentClass, "justify-center px-2 py-0.5")} style={segmentStyle(from, to)}>
+          <span className="truncate text-[0.75rem] text-ink-soft">
+            ↳ nastavak · <span className="font-medium text-ink">{b.client?.name ?? "Bez imena"}</span>
+          </span>
+        </button>
+      ))}
     </>
   );
 }

@@ -16,10 +16,24 @@ export interface StaffDay {
   busy: Interval[];
 }
 
+/**
+ * Dio usluge u kojem je radnik zauzet, u minutama od početka termina.
+ * Usluga bez vremena djelovanja ima jedan dio; s djelovanjem dva (prije i poslije).
+ */
+export interface BusySegment {
+  offsetMin: number;
+  durationMin: number;
+}
+
 export interface SlotQuery {
   staff: StaffDay[];
-  /** Ukupno vrijeme koje radnik mora imati slobodno (usluge + bufferi). */
+  /** Ukupno vrijeme koje radnik mora imati slobodno (usluge + bufferi), bez rupa. */
   durationMin: number;
+  /**
+   * Dijelovi u kojima je radnik zauzet. Bez ovoga: jedan dio cijelog trajanja.
+   * Između dijelova (vrijeme djelovanja) radnik smije imati drugog klijenta.
+   */
+  segments?: BusySegment[];
   /** Korak mreže termina (npr. 15 min). */
   stepMin: number;
   /** Početak lokalnog dana — mreža termina se ravna po njemu (09:00, 09:15…). */
@@ -80,28 +94,34 @@ export function freeWindows(day: StaffDay): Interval[] {
  * (npr. u 10:40), bez rupa u rasporedu.
  */
 export function findSlots(q: SlotQuery): Slot[] {
-  const duration = q.durationMin * MIN;
   const step = q.stepMin * MIN;
-  if (duration <= 0 || step <= 0) return [];
+  const segments = (q.segments?.length ? q.segments : [{ offsetMin: 0, durationMin: q.durationMin }])
+    .filter((g) => g.durationMin > 0)
+    .map((g) => ({ offset: g.offsetMin * MIN, duration: g.durationMin * MIN }));
+  if (!segments.length || step <= 0) return [];
+  const earliest = q.earliest ?? -Infinity;
 
   const byStart = new Map<number, string[]>();
 
   for (const day of q.staff) {
-    for (const w of freeWindows(day)) {
-      const from = Math.max(w.start, q.earliest ?? -Infinity);
-      if (from + duration > w.end) continue;
+    const windows = freeWindows(day);
+    if (!windows.length) continue;
+    const fits = (t: number) =>
+      segments.every((g) => windows.some((w) => w.start <= t + g.offset && t + g.offset + g.duration <= w.end));
 
-      const candidates = new Set<number>();
-      if (from === w.start) candidates.add(w.start);
-      const firstGrid = q.gridOrigin + Math.ceil((from - q.gridOrigin) / step) * step;
-      for (let t = firstGrid; t + duration <= w.end; t += step) candidates.add(t);
+    // Kandidati: tačke mreže + trenuci kad neki dio usluge počinje tačno na početku
+    // slobodnog prozora (npr. odmah nakon prethodnog termina) — bez rupa u rasporedu.
+    const candidates = new Set<number>();
+    for (const w of windows) for (const g of segments) candidates.add(w.start - g.offset);
+    const first = windows[0].start - segments[segments.length - 1].offset;
+    const last = windows[windows.length - 1].end;
+    for (let t = q.gridOrigin + Math.ceil((first - q.gridOrigin) / step) * step; t < last; t += step) candidates.add(t);
 
-      for (const t of candidates) {
-        if (t < from || t + duration > w.end) continue;
-        const list = byStart.get(t);
-        if (list) list.push(day.staffId);
-        else byStart.set(t, [day.staffId]);
-      }
+    for (const t of candidates) {
+      if (t < earliest || !fits(t)) continue;
+      const list = byStart.get(t);
+      if (list) list.push(day.staffId);
+      else byStart.set(t, [day.staffId]);
     }
   }
 

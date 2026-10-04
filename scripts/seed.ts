@@ -83,8 +83,9 @@ async function main() {
 
   const zensko = await svc("Žene", "Žensko šišanje", 45, 30, [lana, amra]);
   const feniranje = await svc("Žene", "Feniranje", 30, 15, [lana, amra]);
-  const izrastak = await svc("Žene", "Farbanje izrastka", 90, 60, [lana, amra], { priceFrom: true, bufferMin: 15 });
-  await svc("Žene", "Pramenovi", 150, 120, [amra], { priceFrom: true, bufferMin: 15 });
+  // Boja djeluje 30 min — radnica tada može raditi drugu klijenticu
+  const izrastak = await svc("Žene", "Farbanje izrastka", 90, 60, [lana, amra], { priceFrom: true, bufferMin: 10, gapStartMin: 30, gapMin: 30 });
+  await svc("Žene", "Pramenovi", 150, 120, [amra], { priceFrom: true, bufferMin: 10, gapStartMin: 45, gapMin: 35 });
   await svc("Žene", "Svečana frizura", 60, 45, [lana, amra], { bookableOnline: false });
   const musko = await svc("Muškarci", "Muško šišanje", 30, 15, [dino, lana]);
   const brada = await svc("Muškarci", "Brada", 20, 10, [dino]);
@@ -116,6 +117,7 @@ async function main() {
   for (const d of [0, 1, 2, 3, 4, 5]) {
     await book(d, "09:00", [zensko], lana, "Merima Kovačević", "061 111 201", "online");
     await book(d, "10:00", [izrastak], lana, "Jasmina Begić", "062 333 404");
+    await book(d, "10:30", [feniranje], lana, "Lamija Kadić", "062 909 101", "online");
     await book(d, "12:15", [feniranje], lana, "Ajla Mujić", "061 555 606", "instagram");
     await book(d, "13:30", [zensko, feniranje], amra, "Nermina Delić", "065 777 808");
     await book(d, "16:00", [izrastak], amra, "Sanela Hodžić", "061 222 909", "voice");

@@ -51,10 +51,12 @@ const DEFAULT_HOURS: Shift[] = [
 ];
 
 export function StaffBoard({
+  canEdit,
   staff,
   services,
   timeOff,
 }: {
+  canEdit: boolean;
   staff: StaffRow[];
   services: ServiceLite[];
   timeOff: TimeOffRow[];
@@ -69,9 +71,11 @@ export function StaffBoard({
         title="Radnici"
         description="Ko radi, kada i koje usluge. Svaki radnik ima svoju boju u kalendaru."
         actions={
-          <Button onClick={() => setEditing("new")}>
-            <Plus size={18} /> Novi radnik
-          </Button>
+          canEdit && (
+            <Button onClick={() => setEditing("new")}>
+              <Plus size={18} /> Novi radnik
+            </Button>
+          )
         }
       />
 
@@ -82,9 +86,11 @@ export function StaffBoard({
             <p className="mx-auto mt-2 max-w-sm text-ink-soft">
               Dodajte sebe i svoje radnike. Bez radnog vremena nema ni slobodnih termina.
             </p>
-            <Button className="mt-5" onClick={() => setEditing("new")}>
-              <Plus size={18} /> Dodaj radnika
-            </Button>
+            {canEdit && (
+              <Button className="mt-5" onClick={() => setEditing("new")}>
+                <Plus size={18} /> Dodaj radnika
+              </Button>
+            )}
           </div>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -94,8 +100,9 @@ export function StaffBoard({
                 <li key={s.id}>
                   <button
                     type="button"
-                    onClick={() => setEditing(s)}
-                    className="group flex h-full w-full flex-col rounded-[var(--radius-card)] bg-paper p-4 text-left ring-1 ring-line transition-shadow hover:shadow-[var(--shadow-lift)]"
+                    onClick={() => canEdit && setEditing(s)}
+                    disabled={!canEdit}
+                    className="group flex h-full w-full flex-col rounded-[var(--radius-card)] bg-paper p-4 text-left ring-1 ring-line transition-shadow enabled:hover:shadow-[var(--shadow-lift)] disabled:cursor-default"
                   >
                     <span className="flex items-start gap-3.5">
                       <Swatch color={s.color} size="lg" />
@@ -133,7 +140,7 @@ export function StaffBoard({
           </ul>
         )}
 
-        {inactive.length > 0 && (
+        {canEdit && inactive.length > 0 && (
           <details className="mt-8">
             <summary className="cursor-pointer text-sm text-ink-soft hover:text-ink">Bivši radnici ({inactive.length})</summary>
             <ul className="mt-2 divide-y divide-line rounded-[var(--radius-card)] bg-paper/60 ring-1 ring-line">

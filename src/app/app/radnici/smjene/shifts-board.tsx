@@ -51,6 +51,7 @@ function weekLabel(days: string[]) {
 }
 
 export function ShiftsBoard({
+  canEdit,
   today,
   weekStart,
   days,
@@ -58,6 +59,7 @@ export function ShiftsBoard({
   cells,
   conflicts,
 }: {
+  canEdit: boolean;
   today: string;
   weekStart: string;
   days: string[];
@@ -139,7 +141,7 @@ export function ShiftsBoard({
                   </th>
                   {days.map((d) => (
                     <td key={d} className="border-b border-l border-line p-1.5 align-top">
-                      <DayCell cell={cell(s.id, d)} past={d < today} onClick={() => setEditing(cell(s.id, d))} />
+                      <DayCell cell={cell(s.id, d)} past={d < today} onClick={canEdit ? () => setEditing(cell(s.id, d)) : undefined} />
                     </td>
                   ))}
                 </tr>
@@ -149,7 +151,7 @@ export function ShiftsBoard({
         </div>
       )}
 
-      <p className="text-sm text-ink-faint">
+      <p className={clsx("text-sm text-ink-faint", !canEdit && "hidden")}>
         Redovni raspored (koji važi svake sedmice) mijenjate na kartici{" "}
         <Link href="/app/radnici" className="text-lacquer hover:underline">
           Radnici
@@ -162,15 +164,16 @@ export function ShiftsBoard({
   );
 }
 
-function DayCell({ cell, past, onClick }: { cell: WeekCell; past: boolean; onClick: () => void }) {
+function DayCell({ cell, past, onClick }: { cell: WeekCell; past: boolean; onClick?: () => void }) {
   const working = cell.shifts.length > 0;
   const allDayAbsence = cell.absences.find((a) => a.allDay);
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={!onClick}
       className={clsx(
-        "flex min-h-24 w-full flex-col items-start gap-1 rounded-lg p-2.5 text-left transition-shadow hover:shadow-[var(--shadow-lift)]",
+        "flex min-h-24 w-full flex-col items-start gap-1 rounded-lg p-2.5 text-left transition-shadow enabled:hover:shadow-[var(--shadow-lift)] disabled:cursor-default",
         allDayAbsence
           ? "bg-amber-wash/70"
           : working

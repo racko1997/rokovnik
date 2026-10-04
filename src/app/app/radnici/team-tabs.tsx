@@ -7,13 +7,14 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/app/radnici", label: "Radnici" },
   { href: "/app/radnici/smjene", label: "Smjene" },
+  { href: "/app/radnici/pristup", label: "Pristup", access: true },
 ];
 
-export function TeamTabs() {
+export function TeamTabs({ showAccess }: { showAccess: boolean }) {
   const pathname = usePathname();
   return (
     <nav className="flex gap-6 border-b border-line px-4 pt-4 sm:px-8" aria-label="Tim">
-      {TABS.map((t) => {
+      {TABS.filter((t) => !t.access || showAccess).map((t) => {
         const active = pathname === t.href;
         return (
           <Link

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
+import { can } from "@/lib/permissions";
 import { requireSalon } from "@/server/context";
 import { db } from "@/server/db/client";
 import { addDays, dayBounds, isLocalDate, isoWeekday, toLocalDate, toLocalMinutes } from "@/server/domain/time";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Smjene" };
 const CONFLICT_HORIZON_DAYS = 90;
 
 export default async function ShiftsPage({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
-  const { salon } = await requireSalon();
+  const { salon, role } = await requireSalon();
   const tz = salon.timezone;
   const today = toLocalDate(new Date(), tz);
   const { w } = await searchParams;
@@ -80,6 +81,7 @@ export default async function ShiftsPage({ searchParams }: { searchParams: Promi
         description="Ko radi kog dana. Izmjena za jedan dan ne dira redovni raspored."
       />
       <ShiftsBoard
+        canEdit={can(role, "manageShifts")}
         today={today}
         weekStart={weekStart}
         days={days}

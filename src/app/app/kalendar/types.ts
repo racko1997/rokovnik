@@ -34,6 +34,8 @@ export interface CalItem {
   serviceId: string;
   serviceName: string;
   priceCents: number;
+  /** 1 = nastavak usluge nakon vremena djelovanja */
+  part: number;
   startMin: number;
   endMin: number;
   blockedMin: number;
@@ -70,6 +72,8 @@ export interface CalBlock {
   firstVisit: boolean;
   client: CalItem["client"];
   services: { id: string; name: string; priceCents: number }[];
+  /** Vrijeme djelovanja: rupe u kojima je radnik slobodan */
+  gaps: { startMin: number; endMin: number }[];
 }
 
 export interface CalendarAlerts {
@@ -100,6 +104,10 @@ export interface CalendarData {
   staffFilter: string;
   /** Radnik za sedmični prikaz */
   weekStaffId: string | null;
+  /** Kolona prijavljenog korisnika (ako je i sam radnik) */
+  myStaffId: string | null;
+  /** Vlasnik i menadžer vide prihod i cijene */
+  canSeeRevenue: boolean;
 }
 
 export const SOURCE_LABEL: Record<Source, string | null> = {
@@ -122,33 +130,35 @@ export const STATUS_LABEL: Record<Status, string> = {
 };
 
 export function toBlocks(items: CalItem[]): CalBlock[] {
-  const map = new Map<string, CalBlock>();
+  const groups = new Map<string, CalItem[]>();
   for (const i of items) {
     const key = `${i.appointmentId}:${i.staffId}`;
-    const b = map.get(key);
-    const service = { id: i.serviceId, name: i.serviceName, priceCents: i.priceCents };
-    if (b) {
-      b.startMin = Math.min(b.startMin, i.startMin);
-      b.endMin = Math.max(b.endMin, i.endMin);
-      b.blockedMin = Math.max(b.blockedMin, i.blockedMin);
-      b.services.push(service);
-    } else {
-      map.set(key, {
-        key,
-        appointmentId: i.appointmentId,
-        staffId: i.staffId,
-        date: i.date,
-        startMin: i.startMin,
-        endMin: i.endMin,
-        blockedMin: i.blockedMin,
-        status: i.status,
-        source: i.source,
-        notes: i.notes,
-        firstVisit: i.firstVisit,
-        client: i.client,
-        services: [service],
-      });
-    }
+    groups.set(key, [...(groups.get(key) ?? []), i]);
   }
-  return [...map.values()];
+  return [...groups.entries()].map(([key, list]) => {
+    const sorted = [...list].sort((a, b) => a.startMin - b.startMin);
+    const first = sorted[0];
+    const gaps: CalBlock["gaps"] = [];
+    for (let k = 1; k < sorted.length; k++) {
+      const prevEnd = Math.max(...sorted.slice(0, k).map((x) => x.blockedMin));
+      if (sorted[k].startMin > prevEnd) gaps.push({ startMin: prevEnd, endMin: sorted[k].startMin });
+    }
+    return {
+      key,
+      appointmentId: first.appointmentId,
+      staffId: first.staffId,
+      date: first.date,
+      startMin: first.startMin,
+      endMin: Math.max(...sorted.map((x) => x.endMin)),
+      blockedMin: Math.max(...sorted.map((x) => x.blockedMin)),
+      status: first.status,
+      source: first.source,
+      notes: first.notes,
+      firstVisit: first.firstVisit,
+      client: first.client,
+      // Nastavak usluge nakon djelovanja nije nova usluga
+      services: sorted.filter((x) => x.part === 0).map((x) => ({ id: x.serviceId, name: x.serviceName, priceCents: x.priceCents })),
+      gaps,
+    };
+  });
 }

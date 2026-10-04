@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { can } from "@/lib/permissions";
 import { requireSalon } from "@/server/context";
 import { addDays, toLocalDate, toLocalMinutes } from "@/server/domain/time";
 import { listServices } from "@/server/services/catalog";
@@ -8,7 +9,7 @@ import { StaffBoard } from "./staff-board";
 export const metadata: Metadata = { title: "Radnici" };
 
 export default async function StaffPage() {
-  const { salon } = await requireSalon();
+  const { salon, role } = await requireSalon();
   const now = new Date();
   const [staff, services, absences] = await Promise.all([
     listStaff(salon.id, { includeInactive: true }),
@@ -19,6 +20,7 @@ export default async function StaffPage() {
   const tz = salon.timezone;
   return (
     <StaffBoard
+      canEdit={can(role, "manageStaff")}
       staff={staff.map((s) => ({
         id: s.id,
         name: s.name,

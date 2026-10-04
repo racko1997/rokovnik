@@ -23,11 +23,13 @@ export function AppointmentSheet({
   block,
   staff,
   currency,
+  showPrices = true,
   onClose,
 }: {
   block: CalBlock | null;
   staff: CalStaff[];
   currency: string;
+  showPrices?: boolean;
   onClose: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -138,10 +140,10 @@ export function AppointmentSheet({
               {block.services.map((s, i) => (
                 <li key={i} className="flex justify-between py-2">
                   <span>{s.name}</span>
-                  <span className="tabular text-ink-soft">{formatPrice(s.priceCents, currency)}</span>
+                  {showPrices && <span className="tabular text-ink-soft">{formatPrice(s.priceCents, currency)}</span>}
                 </li>
               ))}
-              {block.services.length > 1 && (
+              {showPrices && block.services.length > 1 && (
                 <li className="flex justify-between py-2 font-medium">
                   <span>Ukupno</span>
                   <span className="tabular">{formatPrice(total, currency)}</span>

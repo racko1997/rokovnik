@@ -81,4 +81,20 @@ describe("findSlots", () => {
     expect(isFree(split, iv("11:30", "12:30"))).toBe(false);
     expect(isFree(split, iv("13:00", "14:00"))).toBe(true);
   });
+
+  it("vrijeme djelovanja: tuđi kratki termin smije biti u rupi", async () => {
+    // Radnica zauzeta 10:00–10:30 (npr. feniranje drugog klijenta)
+    const mia: StaffDay = { staffId: "mia", shifts: [iv("09:00", "12:00")], busy: [iv("10:00", "10:30")] };
+    // Farbanje 90 min: nanošenje 30, djelovanje 30 (slobodna), završetak 30
+    const segments = [
+      { offsetMin: 0, durationMin: 30 },
+      { offsetMin: 60, durationMin: 30 },
+    ];
+    const withGap = findSlots({ staff: [mia], durationMin: 90, segments, stepMin: 15, gridOrigin: origin });
+    expect(withGap.map((s) => fmt(s.start))).toContain("09:30");
+    // Bez djelovanja 90 min ne stane prije 10:00
+    const noGap = findSlots({ staff: [mia], durationMin: 90, stepMin: 15, gridOrigin: origin });
+    expect(noGap.map((s) => fmt(s.start))).not.toContain("09:30");
+    expect(noGap.map((s) => fmt(s.start))[0]).toBe("10:30");
+  });
 });

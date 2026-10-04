@@ -4,17 +4,21 @@ import { clsx } from "clsx";
 import { CalendarDays, MessagesSquare, Scissors, Settings2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { can, type Permission, type Role } from "@/lib/permissions";
 
-const ITEMS = [
+const ALL_ITEMS: { href: string; label: string; icon: typeof CalendarDays; needs?: Permission }[] = [
   { href: "/app/kalendar", label: "Kalendar", icon: CalendarDays },
   { href: "/app/razgovori", label: "Razgovori", icon: MessagesSquare },
-  { href: "/app/usluge", label: "Usluge", icon: Scissors },
+  { href: "/app/usluge", label: "Usluge", icon: Scissors, needs: "manageCatalog" },
   { href: "/app/radnici", label: "Radnici", icon: UsersRound },
-  { href: "/app/postavke", label: "Postavke", icon: Settings2 },
+  { href: "/app/postavke", label: "Postavke", icon: Settings2, needs: "manageSettings" },
 ];
 
-export function AppNav({ className }: { className?: string }) {
+const itemsFor = (role: Role) => ALL_ITEMS.filter((i) => !i.needs || can(role, i.needs));
+
+export function AppNav({ className, role }: { className?: string; role: Role }) {
   const pathname = usePathname();
+  const ITEMS = itemsFor(role);
   return (
     <nav className={clsx("space-y-0.5", className)}>
       {ITEMS.map(({ href, label, icon: Icon }) => {
@@ -38,10 +42,13 @@ export function AppNav({ className }: { className?: string }) {
   );
 }
 
-export function MobileNav() {
+export function MobileNav({ role }: { role: Role }) {
   const pathname = usePathname();
+  const ITEMS = itemsFor(role);
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+    <nav
+      style={{ gridTemplateColumns: `repeat(${ITEMS.length}, minmax(0, 1fr))` }}
+      className="fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
         return (

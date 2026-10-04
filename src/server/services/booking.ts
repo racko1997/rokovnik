@@ -15,7 +15,7 @@ import {
   staffServices,
   timeOff,
 } from "../db/schema";
-import { findSlots, isFree, type Interval, type StaffDay } from "../domain/availability";
+import { type BusySegment, findSlots, isFree, type Interval, type StaffDay } from "../domain/availability";
 import { addDays, dayBounds, isLocalDate, toLocalDate, toLocalMinutes, zonedToUtc, type LocalDate } from "../domain/time";
 import { normalizePhone } from "@/lib/phone";
 import { DomainError, isExclusionViolation } from "../errors";
@@ -141,6 +141,41 @@ function totalBlockMin(list: { durationMin: number; bufferMin: number }[]) {
   return list.reduce((sum, s) => sum + s.durationMin + s.bufferMin, 0);
 }
 
+type TimedService = { durationMin: number; bufferMin: number; gapStartMin: number; gapMin: number };
+
+/**
+ * Dijelovi u kojima je radnik zauzet, u minutama od početka termina. Vrijeme
+ * djelovanja (npr. boja) je rupa između dijelova — tada radnik može raditi drugog klijenta.
+ */
+export function busySegments(list: TimedService[]): BusySegment[] {
+  const segs: BusySegment[] = [];
+  let cursor = 0;
+  const push = (offsetMin: number, durationMin: number) => {
+    const last = segs[segs.length - 1];
+    if (last && last.offsetMin + last.durationMin === offsetMin) last.durationMin += durationMin;
+    else segs.push({ offsetMin, durationMin });
+  };
+  for (const s of list) {
+    if (s.gapMin > 0) {
+      push(cursor, s.gapStartMin);
+      push(cursor + s.gapStartMin + s.gapMin, s.durationMin - s.gapStartMin - s.gapMin + s.bufferMin);
+    } else {
+      push(cursor, s.durationMin + s.bufferMin);
+    }
+    cursor += s.durationMin + s.bufferMin;
+  }
+  return segs;
+}
+
+function segmentIntervals(list: TimedService[], start: number): Interval[] {
+  return busySegments(list).map((g) => ({ start: start + g.offsetMin * MIN, end: start + (g.offsetMin + g.durationMin) * MIN }));
+}
+
+/** Radnik je slobodan u svim dijelovima termina. */
+function allFree(day: StaffDay, intervals: Interval[]) {
+  return intervals.every((i) => isFree(day, i));
+}
+
 function bookingWindow(salon: Salon, mode: BookingMode, now: Date) {
   if (mode === "staff") return { earliest: undefined, lastDate: undefined };
   return {
@@ -183,6 +218,7 @@ export async function getAvailability(
     const slots = findSlots({
       staff: staffDays,
       durationMin: duration,
+      segments: busySegments(list),
       stepMin: salon.slotIntervalMin,
       gridOrigin: dayBounds(date, salon.timezone).start.getTime(),
       earliest,
@@ -248,7 +284,7 @@ export async function createAppointment(
     const days = await loadStaffDays(db, salon, candidates, date, 2);
     const staffDays = [...(days.get(date) ?? []), ...(days.get(addDays(date, 1)) ?? [])];
     ordered = candidates.filter((id) =>
-      staffDays.filter((d) => d.staffId === id).some((d) => isFree(d, { start, end: blockEnd })),
+      staffDays.filter((d) => d.staffId === id).some((d) => allFree(d, segmentIntervals(list, start))),
     );
     if (!ordered.length) throw new DomainError("SLOT_TAKEN", "Taj termin više nije slobodan. Odaberite drugi.");
   }
@@ -261,22 +297,25 @@ export async function createAppointment(
           ? await assertClient(tx, salon.id, input.clientId)
           : (await findOrCreateClient(tx, salon.id, input.client!)).id;
 
+        // Usluga s vremenom djelovanja se upisuje u dva dijela (prije i poslije rupe),
+        // pa je radnik u rupi slobodan i baza dozvoljava drugi termin u tom vremenu.
         let cursor = start;
-        const items = list.map((s) => {
+        const items = list.flatMap((s) => {
+          const base = { salonId: salon.id, staffId, serviceId: s.id, serviceName: s.name };
           const itemStart = cursor;
           const itemEnd = itemStart + s.durationMin * MIN;
-          const blockedUntil = itemEnd + s.bufferMin * MIN;
-          cursor = blockedUntil;
-          return {
-            salonId: salon.id,
-            staffId,
-            serviceId: s.id,
-            serviceName: s.name,
-            priceCents: s.priceCents,
-            startsAt: new Date(itemStart),
-            endsAt: new Date(itemEnd),
-            blockedUntil: new Date(blockedUntil),
-          };
+          cursor = itemEnd + s.bufferMin * MIN;
+          if (s.gapMin > 0) {
+            const gapStart = itemStart + s.gapStartMin * MIN;
+            const gapEnd = gapStart + s.gapMin * MIN;
+            return [
+              { ...base, priceCents: s.priceCents, part: 0, startsAt: new Date(itemStart), endsAt: new Date(gapStart), blockedUntil: new Date(gapStart) },
+              { ...base, priceCents: 0, part: 1, startsAt: new Date(gapEnd), endsAt: new Date(itemEnd), blockedUntil: new Date(cursor) },
+            ];
+          }
+          return [
+            { ...base, priceCents: s.priceCents, part: 0, startsAt: new Date(itemStart), endsAt: new Date(itemEnd), blockedUntil: new Date(cursor) },
+          ];
         });
         const endsAt = items[items.length - 1].endsAt;
 
@@ -353,6 +392,8 @@ export interface CalendarItem {
   serviceId: string;
   serviceName: string;
   priceCents: number;
+  /** 1 = nastavak usluge nakon vremena djelovanja */
+  part: number;
   startsAt: Date;
   endsAt: Date;
   blockedUntil: Date;
@@ -373,6 +414,7 @@ export async function listCalendar(salonId: string, from: Date, to: Date): Promi
       serviceId: appointmentItems.serviceId,
       serviceName: appointmentItems.serviceName,
       priceCents: appointmentItems.priceCents,
+      part: appointmentItems.part,
       startsAt: appointmentItems.startsAt,
       endsAt: appointmentItems.endsAt,
       blockedUntil: appointmentItems.blockedUntil,
@@ -445,7 +487,7 @@ export async function listUpcomingByPhone(salonId: string, phoneInput: string, n
     const a = byId.get(r.appointmentId) ?? {
       appointmentId: r.appointmentId, startsAt: r.startsAt, endsAt: r.endsAt, status: r.status, services: [], staffIds: [],
     };
-    a.services.push(r.serviceName);
+    if (!a.services.includes(r.serviceName)) a.services.push(r.serviceName);
     if (!a.staffIds.includes(r.staffId)) a.staffIds.push(r.staffId);
     byId.set(r.appointmentId, a);
   }
@@ -531,8 +573,11 @@ export async function listScheduleConflicts(
     const b = blocks.get(key);
     if (b) {
       if (i.endsAt > b.end) b.end = i.endsAt;
-      b.services.push(i.serviceName);
-      b.serviceIds.push(i.serviceId);
+      // Nastavak iste usluge (nakon djelovanja) se ne ponavlja u nazivu
+      if (!b.serviceIds.includes(i.serviceId)) {
+        b.services.push(i.serviceName);
+        b.serviceIds.push(i.serviceId);
+      }
       continue;
     }
     blocks.set(key, {
@@ -589,11 +634,10 @@ export async function suggestReassignment(salon: Salon, appointmentId: string, f
   const serviceIds = [...new Set(items.map((i) => i.serviceId))];
   const candidates = (await eligibleStaffIds(db, salon.id, serviceIds, "staff")).filter((id) => id !== fromStaffId);
   if (!candidates.length) return [];
-  const start = items[0].startsAt.getTime();
-  const end = Math.max(...items.map((i) => i.blockedUntil.getTime()));
+  const intervals = items.map((i) => ({ start: i.startsAt.getTime(), end: i.blockedUntil.getTime() }));
   const date = toLocalDate(items[0].startsAt, salon.timezone);
   const days = await loadStaffDays(db, salon, candidates, date, 1, appointmentId);
-  return (days.get(date) ?? []).filter((d) => isFree(d, { start, end })).map((d) => d.staffId);
+  return (days.get(date) ?? []).filter((d) => allFree(d, intervals)).map((d) => d.staffId);
 }
 
 export const moveAppointmentInput = z.object({
@@ -701,7 +745,8 @@ export async function rescheduleByClient(
 
   const days = await loadStaffDays(db, salon, ordered, date, 2, input.appointmentId);
   const staffDays = [...(days.get(date) ?? []), ...(days.get(addDays(date, 1)) ?? [])];
-  const free = ordered.filter((id) => staffDays.filter((d) => d.staffId === id).some((d) => isFree(d, { start, end })));
+  const intervals = segmentIntervals(list, start);
+  const free = ordered.filter((id) => staffDays.filter((d) => d.staffId === id).some((d) => allFree(d, intervals)));
   if (!free.length) throw new DomainError("SLOT_TAKEN", "Taj termin nije slobodan. Odaberite drugi.");
 
   await moveAppointment(salon, { appointmentId: input.appointmentId, fromStaffId, toStaffId: free[0], startsAt: input.startsAt });

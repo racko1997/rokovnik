@@ -140,12 +140,15 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
 
   // Statistika za prikazani dan/sedmicu
   const stats = useMemo(() => {
-    const shown = isWeek ? blocks.filter((b) => b.staffId === weekStaff?.id) : blocks.filter((b) => b.date === day);
+    // Statistika prati ono što je na ekranu (npr. samo "Moji termini")
+    const shown = isWeek
+      ? blocks.filter((b) => b.staffId === weekStaff?.id)
+      : blocks.filter((b) => b.date === day && visibleStaff.some((v) => v.id === b.staffId));
     const visits = new Set(shown.map((b) => b.appointmentId)).size;
     const revenue = shown.filter((b) => b.status !== "no_show").reduce((sum, b) => sum + b.services.reduce((s, x) => s + x.priceCents, 0), 0);
     const viaChannels = new Set(shown.filter((b) => b.source !== "dashboard").map((b) => b.appointmentId)).size;
     return { visits, revenue, viaChannels };
-  }, [blocks, isWeek, weekStaff, day]);
+  }, [blocks, isWeek, weekStaff, day, visibleStaff]);
 
   const needsSetup = data.staff.length === 0 || data.services.length === 0;
   const step = isWeek ? 7 : 1;
@@ -172,7 +175,8 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
             <h1 className="font-display text-[1.75rem] leading-tight first-letter:uppercase sm:text-4xl">{title}</h1>
             {!needsSetup && (
               <p className="tabular mt-1 text-sm text-ink-soft">
-                {stats.visits} {plural(stats.visits, "termin", "termina", "termina")} · {formatPrice(stats.revenue, data.currency)}
+                {stats.visits} {plural(stats.visits, "termin", "termina", "termina")}
+                {data.canSeeRevenue && <> · {formatPrice(stats.revenue, data.currency)}</>}
                 {stats.viaChannels > 0 && <> · {stats.viaChannels} zakazano bez recepcije</>}
               </p>
             )}
@@ -234,7 +238,10 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
               </div>
             ) : (
               <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-                <Chip active={data.staffFilter === "rade"} href={href({ r: null })} label="Rade danas" />
+                {data.myStaffId && (
+                  <Chip active={data.staffFilter === data.myStaffId} href={href({ r: data.myStaffId })} label="Moji termini" />
+                )}
+                <Chip active={data.staffFilter === "rade"} href={href({ r: "rade" })} label="Rade danas" />
                 <Chip active={data.staffFilter === "svi"} href={href({ r: "svi" })} label="Svi" />
                 <span className="mx-1 h-5 w-px bg-line-strong" />
                 {data.staff.map((s) => {
@@ -243,7 +250,7 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
                   return (
                     <Chip
                       key={s.id}
-                      active={on && data.staffFilter !== "rade" && data.staffFilter !== "svi"}
+                      active={on && data.staffFilter !== "rade" && data.staffFilter !== "svi" && data.staffFilter !== data.myStaffId}
                       dim={!on}
                       href={href({ r: next.length ? next.map((v) => v.id).join(",") : null })}
                       color={s.color}
@@ -340,7 +347,7 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
         </div>
       )}
 
-      <AppointmentSheet block={selected} staff={data.staff} currency={data.currency} onClose={() => setSelected(null)} />
+      <AppointmentSheet block={selected} staff={data.staff} currency={data.currency} showPrices={data.canSeeRevenue} onClose={() => setSelected(null)} />
       <NewAppointmentSheet
         key={draft ? `${draft.staffId}-${draft.date}-${draft.startMin}` : "none"}
         draft={draft}

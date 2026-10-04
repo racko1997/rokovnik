@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { appUrl } from "@/lib/app-url";
-import { requireSalon } from "@/server/context";
+import { requirePagePermission } from "@/server/context";
 import { toLocalDate } from "@/server/domain/time";
 import { listClosures } from "@/server/services/schedule";
 import { Closures } from "./closures";
@@ -10,7 +10,7 @@ import { SettingsForm } from "./settings-form";
 export const metadata: Metadata = { title: "Postavke" };
 
 export default async function SettingsPage() {
-  const { salon } = await requireSalon();
+  const { salon } = await requirePagePermission("manageSettings");
   const origin = appUrl();
   const today = toLocalDate(new Date(), salon.timezone);
   const closures = await listClosures(salon.id, today);

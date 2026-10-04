@@ -1,10 +1,14 @@
 import { BrandMark } from "@/components/brand-mark";
-import { requireSalon } from "@/server/context";
+import { ROLE_LABEL } from "@/lib/permissions";
+import { getMemberships, requireSalon, requireUser } from "@/server/context";
 import { AppNav, MobileNav } from "./nav";
+import { SalonSwitcher } from "./salon-switcher";
 import { SignOutButton } from "./sign-out-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { salon } = await requireSalon();
+  const { salon, role } = await requireSalon();
+  const user = await requireUser();
+  const memberships = await getMemberships(user.id);
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -12,7 +16,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <BrandMark href="/app" className="px-2" />
         <div className="mt-8 px-2">
           <p className="text-xs font-medium tracking-wide text-ink-faint uppercase">Salon</p>
-          <p className="mt-1 truncate font-display text-lg leading-snug">{salon.name}</p>
+          {memberships.length > 1 ? (
+            <SalonSwitcher current={salon.id} salons={memberships.map((m) => ({ id: m.salon.id, name: m.salon.name }))} />
+          ) : (
+            <p className="mt-1 truncate font-display text-lg leading-snug">{salon.name}</p>
+          )}
           <a
             href={`/s/${salon.slug}`}
             target="_blank"
@@ -21,14 +29,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             /s/{salon.slug} ↗
           </a>
         </div>
-        <AppNav className="mt-8" />
-        <div className="mt-auto px-2">
+        <AppNav className="mt-8" role={role} />
+        <div className="mt-auto space-y-3 border-t border-line px-2 pt-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="text-xs text-ink-soft">{ROLE_LABEL[role]}</p>
+          </div>
           <SignOutButton />
         </div>
       </aside>
 
       <div className="min-w-0 pb-20 lg:pb-0">{children}</div>
-      <MobileNav />
+      <MobileNav role={role} />
     </div>
   );
 }

@@ -18,6 +18,8 @@ export interface ServiceRow {
   categoryName: string | null;
   durationMin: number;
   bufferMin: number;
+  gapStartMin: number;
+  gapMin: number;
   priceCents: number;
   priceFrom: boolean;
   bookableOnline: boolean;
@@ -101,6 +103,7 @@ export function ServicesBoard({
                     <span className="tabular text-sm text-ink-soft sm:order-2 sm:text-right">
                       {formatDuration(s.durationMin)}
                       {s.bufferMin > 0 && <span className="text-ink-faint"> +{s.bufferMin}</span>}
+                      {s.gapMin > 0 && <span className="block text-xs text-mint">djelovanje {s.gapMin} min</span>}
                     </span>
                     <span className="flex justify-end -space-x-1 sm:order-4">
                       {s.staffIds.length === 0 ? (
@@ -195,6 +198,10 @@ function ServiceSheet({
   const existing = service && service !== "new" ? service : null;
   const [staffIds, setStaffIds] = useState<string[]>(existing?.staffIds ?? staff.map((s) => s.id));
   const [duration, setDuration] = useState(existing?.durationMin ?? 30);
+  const [gapOn, setGapOn] = useState((existing?.gapMin ?? 0) > 0);
+  const [gapStart, setGapStart] = useState(existing?.gapMin ? existing.gapStartMin : 30);
+  const [gapLen, setGapLen] = useState(existing?.gapMin || 30);
+  const [buffer, setBuffer] = useState(existing?.bufferMin ?? 0);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -207,7 +214,9 @@ function ServiceSheet({
         description: String(f.get("description") ?? ""),
         categoryName: String(f.get("categoryName") ?? ""),
         durationMin: duration,
-        bufferMin: Number(f.get("bufferMin") || 0),
+        bufferMin: buffer,
+        gapStartMin: gapOn ? gapStart : 0,
+        gapMin: gapOn ? gapLen : 0,
         price: Number(String(f.get("price")).replace(",", ".")),
         priceFrom: f.get("priceFrom") === "on",
         bookableOnline: f.get("bookableOnline") === "on",
@@ -302,8 +311,27 @@ function ServiceSheet({
             />
           </Field>
           <Field label="Pauza nakon (min)" hint="Čišćenje, priprema.">
-            <Input name="bufferMin" type="number" min={0} max={120} step={5} defaultValue={existing?.bufferMin ?? 0} />
+            <Input type="number" min={0} max={120} step={5} value={buffer} onChange={(e) => setBuffer(Number(e.target.value) || 0)} />
           </Field>
+        </div>
+
+        <div className="space-y-3 rounded-[var(--radius-chip)] bg-porcelain/70 p-3 ring-1 ring-line">
+          <Toggle
+            checked={gapOn}
+            onChange={(e) => setGapOn(e.target.checked)}
+            label="Vrijeme djelovanja"
+            description="Npr. boja ili pramenovi: dok djeluje, radnik je slobodan i može raditi drugog klijenta."
+          />
+          {gapOn && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              počinje nakon
+              <Input type="number" min={5} step={5} value={gapStart} onChange={(e) => setGapStart(Number(e.target.value) || 0)} className="h-9 w-20 text-center" aria-label="Djelovanje počinje nakon (min)" />
+              min i traje
+              <Input type="number" min={5} step={5} value={gapLen} onChange={(e) => setGapLen(Number(e.target.value) || 0)} className="h-9 w-20 text-center" aria-label="Trajanje djelovanja (min)" />
+              min
+            </div>
+          )}
+          <ServiceTimeline duration={duration} buffer={buffer} gapStart={gapOn ? gapStart : 0} gap={gapOn ? gapLen : 0} />
         </div>
 
         <Toggle name="priceFrom" defaultChecked={existing?.priceFrom} label="Cijena „od“" description="Konačna cijena zavisi od dužine kose, količine boje i sl." />
@@ -350,5 +378,47 @@ function ServiceSheet({
         <FormError message={error} />
       </form>
     </Sheet>
+  );
+}
+
+/** Pregled kako usluga zauzima radnika: rad, djelovanje (slobodan), pauza nakon. */
+function ServiceTimeline({ duration, buffer, gapStart, gap }: { duration: number; buffer: number; gapStart: number; gap: number }) {
+  const valid = gap === 0 || (gapStart > 0 && gapStart + gap < duration);
+  const parts =
+    gap > 0 && valid
+      ? [
+          { label: "rad", min: gapStart, kind: "busy" },
+          { label: "djelovanje — slobodan", min: gap, kind: "free" },
+          { label: "rad", min: duration - gapStart - gap, kind: "busy" },
+        ]
+      : [{ label: "rad", min: duration, kind: "busy" }];
+  if (buffer > 0) parts.push({ label: "pauza", min: buffer, kind: "buffer" });
+  const total = parts.reduce((s, p) => s + p.min, 0);
+  return (
+    <div>
+      <div className="flex h-7 overflow-hidden rounded-md ring-1 ring-line">
+        {parts.map((p, i) => (
+          <span
+            key={i}
+            style={{ width: `${(p.min / total) * 100}%` }}
+            className={clsx(
+              "flex items-center justify-center overflow-hidden text-[0.6875rem] font-medium whitespace-nowrap",
+              p.kind === "busy" && "bg-ink text-porcelain",
+              p.kind === "free" && "bg-mint-wash text-mint [background-image:repeating-linear-gradient(135deg,transparent_0_5px,rgb(46_122_102/0.12)_5px_7px)]",
+              p.kind === "buffer" && "bg-line text-ink-soft",
+            )}
+          >
+            {p.min} min
+          </span>
+        ))}
+      </div>
+      {valid ? (
+        <p className="mt-1.5 text-xs text-ink-soft">
+          {gap > 0 ? `Radnik je zauzet ${duration - gap + buffer} min, a ${gap} min može raditi drugog klijenta.` : "Radnik je zauzet cijelo vrijeme."}
+        </p>
+      ) : (
+        <p className="mt-1.5 text-xs text-lacquer-deep">Djelovanje mora početi nakon početka i završiti prije kraja usluge.</p>
+      )}
+    </div>
   );
 }

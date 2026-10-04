@@ -1,6 +1,7 @@
 import { and, eq, gte, lt } from "drizzle-orm";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { can } from "@/lib/permissions";
 import { requireSalon } from "@/server/context";
 import { db } from "@/server/db/client";
 import { appointments, conversations } from "@/server/db/schema";
@@ -17,7 +18,7 @@ export const metadata: Metadata = { title: "Kalendar" };
 type Search = { d?: string; v?: string; r?: string; s?: string };
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const { salon } = await requireSalon();
+  const { salon, role, staffId: myStaffId } = await requireSalon();
   const tz = salon.timezone;
   const now = new Date();
   const today = toLocalDate(now, tz);
@@ -96,6 +97,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         serviceId: i.serviceId,
         serviceName: i.serviceName,
         priceCents: i.priceCents,
+        part: i.part,
         startMin: minutesIn(i.startsAt, day),
         endMin: minutesIn(i.endsAt, day),
         blockedMin: minutesIn(i.blockedUntil, day),
@@ -120,8 +122,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     alerts: { unconfirmedTomorrow, conflictsAhead: conflictsAhead.length, handoffs },
     colorMode,
     density,
-    staffFilter: sp.r ?? "rade",
-    weekStaffId: sp.s && staff.some((s) => s.id === sp.s) ? sp.s : (staff[0]?.id ?? null),
+    // Radnik s nalogom vidi prvo svoje termine; "Svi" je jedan klik dalje
+    staffFilter: sp.r ?? (role === "staff" && myStaffId ? myStaffId : "rade"),
+    weekStaffId: sp.s && staff.some((s) => s.id === sp.s) ? sp.s : (myStaffId ?? staff[0]?.id ?? null),
+    myStaffId,
+    canSeeRevenue: can(role, "viewRevenue"),
   };
 
   return <CalendarShell key={`${view}:${days[0]}`} data={data} viewExplicit={Boolean(sp.v)} />;

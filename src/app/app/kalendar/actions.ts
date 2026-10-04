@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { runAction } from "@/server/action";
-import { requireSalon } from "@/server/context";
+import { requirePermission } from "@/server/context";
 import { isLocalDate, zonedToUtc } from "@/server/domain/time";
 import { createAppointment, moveAppointment, setAppointmentStatus, type Status } from "@/server/services/booking";
 
@@ -19,7 +19,7 @@ const newAppointmentForm = z.object({
 
 export async function createAppointmentAction(raw: z.input<typeof newAppointmentForm>) {
   return runAction(async () => {
-    const { salon, userId } = await requireSalon();
+    const { salon, userId } = await requirePermission("manageBookings");
     const input = newAppointmentForm.parse(raw);
     const res = await createAppointment(
       salon,
@@ -41,7 +41,7 @@ export async function createAppointmentAction(raw: z.input<typeof newAppointment
 
 export async function setAppointmentStatusAction(appointmentId: string, status: Status) {
   return runAction(async () => {
-    const { salon } = await requireSalon();
+    const { salon } = await requirePermission("manageBookings");
     await setAppointmentStatus(salon.id, appointmentId, status);
     revalidatePath("/app/kalendar");
   });
@@ -58,7 +58,7 @@ const moveForm = z.object({
 /** Prevlačenje termina u kalendaru: drugi radnik, drugo vrijeme ili drugi dan. */
 export async function moveAppointmentAction(raw: z.input<typeof moveForm>) {
   return runAction(async () => {
-    const { salon } = await requireSalon();
+    const { salon } = await requirePermission("manageBookings");
     const input = moveForm.parse(raw);
     await moveAppointment(salon, {
       appointmentId: input.appointmentId,

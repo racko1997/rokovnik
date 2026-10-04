@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
@@ -22,7 +23,7 @@ const sizes: Record<Size, string> = {
 };
 
 export function buttonClass(variant: Variant = "primary", size: Size = "md", className?: string) {
-  return clsx(base, variants[variant], sizes[size], className);
+  return twMerge(clsx(base, variants[variant], sizes[size], className));
 }
 
 export function Button({
