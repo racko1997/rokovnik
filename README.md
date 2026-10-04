@@ -99,7 +99,18 @@ Migracija `0003` uključuje RLS na svim tabelama bez politika, tako da Supabase 
 - [ ] **Faza 4** — glasovni agent (OpenAI Realtime + SIP/preusmjeravanje poziva)
 - [ ] **Faza 5** — pretplate, statistika, prilagođeni domeni
 
-## Produkcija (kasnije)
+## Vercel
 
-Bilo koji PostgreSQL 14+ (Supabase, Neon, vlastiti server) — samo `DATABASE_URL`.
-Aplikacija je standardni Next.js (Vercel ili vlastiti Node server).
+Project → Settings → Environment Variables (Production i Preview):
+
+| Varijabla | Vrijednost |
+| --- | --- |
+| `DATABASE_URL` | Supabase **Session pooler** (port 5432) |
+| `BETTER_AUTH_SECRET` | nova nasumična vrijednost (ne ista kao lokalno) |
+| `OPENAI_API_KEY` | ključ za AI recepcionera |
+| `OPENAI_MODEL` | `gpt-5.4-mini` |
+| `BETTER_AUTH_URL` | (opciono) vlastiti domen, npr. `https://rokovnik.ba` |
+
+Bez `BETTER_AUTH_URL` aplikacija koristi adresu koju Vercel dodijeli, a prijava radi i na
+probnim (preview) adresama. Build ne traži bazu — varijable trebaju tek za rad aplikacije.
+Migracije se pokreću lokalno: `npm run db:migrate` (koristi `DIRECT_URL`).

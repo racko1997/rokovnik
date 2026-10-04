@@ -2,10 +2,14 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { appUrl, vercelUrls } from "@/lib/app-url";
 import { db } from "./db/client";
 import * as schema from "./db/schema";
 
 export const auth = betterAuth({
+  baseURL: appUrl() || undefined,
+  // Vercel daje posebnu adresu za svaku probnu verziju — i tamo prijava mora raditi
+  trustedOrigins: [appUrl(), ...vercelUrls()].filter(Boolean),
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {

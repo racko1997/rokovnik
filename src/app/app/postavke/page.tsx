@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
+import { appUrl } from "@/lib/app-url";
 import { requireSalon } from "@/server/context";
 import { toLocalDate } from "@/server/domain/time";
 import { listClosures } from "@/server/services/schedule";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Postavke" };
 
 export default async function SettingsPage() {
   const { salon } = await requireSalon();
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const origin = appUrl();
   const today = toLocalDate(new Date(), salon.timezone);
   const closures = await listClosures(salon.id, today);
   return (
