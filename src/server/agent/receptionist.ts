@@ -13,7 +13,7 @@ import {
   loadMessages,
 } from "./conversations";
 import { buildInstructions } from "./prompt";
-import { openAiToolDefinitions, runTool, type ToolContext } from "./tools";
+import { extractTimes, openAiToolDefinitions, runTool, type ToolContext } from "./tools";
 
 const MAX_TOOL_ROUNDS = 6;
 const MAX_USER_MESSAGES = 60;
@@ -76,6 +76,8 @@ export async function respond(input: {
     conversationId: conversation.id,
     channel,
     staffName: new Map(staff.map((s) => [s.id, s.name])),
+    // Samo ono što je recepcioner zaista napisao klijentu može biti upisano
+    offeredTimes: new Set(history.filter((m) => m.role === "assistant").flatMap((m) => extractTimes(m.content))),
   };
 
   const instructions = buildInstructions({ salon, services, staff, now, channelLabel: CHANNEL_LABEL[channel] });
@@ -114,7 +116,8 @@ export async function respond(input: {
 
     for (const call of calls) {
       const { args, result } = await runTool(ctx, call.name, call.arguments);
-      if (call.name === "book_appointment" && (result as { booked?: boolean })?.booked) booked = true;
+      const r = result as { booked?: boolean; rescheduled?: boolean };
+      if (r?.booked || r?.rescheduled) booked = true;
       items.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(result) });
       toolLog.push({ role: "tool", toolName: call.name, toolArgs: args, toolResult: result });
     }

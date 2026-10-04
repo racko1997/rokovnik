@@ -4,7 +4,10 @@ import { z } from "zod";
 import { formatPhone } from "@/lib/phone";
 import { isLocalDate, toLocalDate, toLocalMinutes, zonedToUtc } from "../domain/time";
 import { DomainError } from "../errors";
-import { cancelByClient, createAppointment, getAvailability, listUpcomingByPhone } from "../services/booking";
+import { and, eq, gt, inArray } from "drizzle-orm";
+import { db } from "../db/client";
+import { appointments } from "../db/schema";
+import { cancelByClient, createAppointment, getAvailability, listUpcomingByPhone, rescheduleByClient } from "../services/booking";
 import type { Salon } from "../services/salons";
 import { type Channel, updateConversation } from "./conversations";
 
@@ -13,6 +16,28 @@ export interface ToolContext {
   conversationId: string;
   channel: Channel;
   staffName: Map<string, string>;
+  /** Vremena (HH:MM) koja je recepcioner već napisao klijentu u ovom razgovoru */
+  offeredTimes: Set<string>;
+}
+
+/** Sva vremena HH:MM spomenuta u tekstu ("9:35" → "09:35"). Datumi poput "5.10." se ne broje. */
+export function extractTimes(text: string): string[] {
+  return [...text.matchAll(/\b([01]?\d|2[0-3])[:]([0-5]\d)\b/g)].map((m) => `${m[1].padStart(2, "0")}:${m[2]}`);
+}
+
+/**
+ * AI smije upisati samo vrijeme koje je klijentu prethodno napisao i koje je
+ * klijent mogao potvrditi. Sprječava da model "sam izabere" drugo vrijeme.
+ */
+function assertOffered(ctx: ToolContext, time: string) {
+  const [h, m] = time.trim().split(":");
+  const normalized = `${(h ?? "").padStart(2, "0")}:${m ?? ""}`;
+  if (!ctx.offeredTimes.has(normalized)) {
+    throw new DomainError(
+      "NOT_OFFERED",
+      `Vrijeme ${normalized} klijentu nije ponuđeno u razgovoru. Prvo mu napiši tačno to vrijeme (dan, sat, radnik) i sačekaj potvrdu — ne mijenjaj dogovoreno vrijeme samoinicijativno.`,
+    );
+  }
 }
 
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -91,6 +116,7 @@ export const TOOLS = {
       client_name: z.string().min(2),
       client_phone: z.string().min(6),
       notes: z.string().nullable(),
+      additional_booking: z.boolean(),
     }),
     parameters: {
       type: "object",
@@ -102,11 +128,41 @@ export const TOOLS = {
         client_name: { type: "string" },
         client_phone: { type: "string", description: "Broj telefona kako ga je klijent napisao." },
         notes: { ...nullableString, description: "Kratka napomena za salon (npr. dužina kose), ili null." },
+        additional_booking: {
+          type: "boolean",
+          description:
+            "true samo ako klijent IZRIČITO želi još jedan, dodatni termin uz već zakazani (npr. za drugu osobu). Za promjenu vremena koristi reschedule_appointment.",
+        },
       },
-      required: ["service_ids", "staff_id", "date", "time", "client_name", "client_phone", "notes"],
+      required: ["service_ids", "staff_id", "date", "time", "client_name", "client_phone", "notes", "additional_booking"],
       additionalProperties: false,
     },
     run: async (ctx, args) => {
+      assertOffered(ctx, args.time);
+      if (!args.additional_booking) {
+        const existing = await db
+          .select({ id: appointments.id, startsAt: appointments.startsAt })
+          .from(appointments)
+          .where(
+            and(
+              eq(appointments.conversationId, ctx.conversationId),
+              inArray(appointments.status, ["booked", "confirmed"]),
+              gt(appointments.startsAt, new Date()),
+            ),
+          );
+        if (existing.length) {
+          return {
+            error:
+              "Klijent u ovom razgovoru već ima zakazan termin. Ako želi drugo vrijeme, pomjeri postojeći (reschedule_appointment). Novi termin upiši samo ako izričito traži dodatni (additional_booking = true).",
+            code: "ALREADY_BOOKED",
+            existing: existing.map((e) => ({
+              appointment_id: e.id,
+              date: toLocalDate(e.startsAt, ctx.salon.timezone),
+              start: hhmm(toLocalMinutes(e.startsAt, ctx.salon.timezone)),
+            })),
+          };
+        }
+      }
       const res = await createAppointment(
         ctx.salon,
         {
@@ -151,6 +207,46 @@ export const TOOLS = {
           services: a.services,
           staff: a.staffIds.map((id) => ctx.staffName.get(id) ?? id),
         })),
+      };
+    },
+  }),
+
+  reschedule_appointment: define({
+    description:
+      "Pomjera POSTOJEĆI termin klijenta na novo vrijeme (umjesto otkazivanja i novog upisa). Zovi kad klijent potvrdi novo vrijeme koje si mu ponudio.",
+    schema: z.object({
+      appointment_id: z.string(),
+      phone: z.string().min(6),
+      date,
+      time: z.string(),
+      staff_id: z.string().nullable(),
+    }),
+    parameters: {
+      type: "object",
+      properties: {
+        appointment_id: { type: "string", description: "Iz find_client_appointments ili iz greške ALREADY_BOOKED." },
+        phone: { type: "string", description: "Broj s kojim je termin zakazan." },
+        date: { type: "string", description: "Novi datum, YYYY-MM-DD." },
+        time: { type: "string", description: "Novo vrijeme HH:MM, tačno kako je ponuđeno klijentu." },
+        staff_id: { ...nullableString, description: "Novi radnik ako se mijenja, inače null (ostaje isti ako je slobodan)." },
+      },
+      required: ["appointment_id", "phone", "date", "time", "staff_id"],
+      additionalProperties: false,
+    },
+    run: async (ctx, args) => {
+      assertOffered(ctx, args.time);
+      const res = await rescheduleByClient(ctx.salon, {
+        appointmentId: args.appointment_id,
+        phone: args.phone,
+        startsAt: zonedToUtc(args.date, parseHHMM(args.time), ctx.salon.timezone),
+        staffId: args.staff_id ?? undefined,
+      });
+      return {
+        rescheduled: true,
+        date: toLocalDate(res.startsAt, ctx.salon.timezone),
+        start: hhmm(toLocalMinutes(res.startsAt, ctx.salon.timezone)),
+        end: hhmm(toLocalMinutes(res.endsAt, ctx.salon.timezone)),
+        staff: ctx.staffName.get(res.staffId),
       };
     },
   }),

@@ -1,11 +1,11 @@
 // Alati AI recepcionera nad pravom bazom, bez OpenAI-ja: provjerava da AI dobija
 // tačne podatke i da ne može zaobići pravila zakazivanja.
 import "dotenv/config";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "../db/client";
 import { appointments, salons } from "../db/schema";
-import { addDays, isoWeekday, toLocalDate } from "../domain/time";
+import { addDays, isoWeekday, toLocalDate, toLocalMinutes } from "../domain/time";
 import { saveService } from "../services/catalog";
 import type { Salon } from "../services/salons";
 import { saveStaff } from "../services/staff";
@@ -28,10 +28,13 @@ beforeAll(async () => {
     .insert(salons)
     .values({ name: "Agent test", slug: `agent-${crypto.randomUUID().slice(0, 8)}`, timezone: TZ })
     .returning();
-  mia = await saveStaff(salon.id, null, { name: "Mia", color: "rubin", hours: [{ weekday: 2, startMin: 9 * 60, endMin: 11 * 60 }] });
+  mia = await saveStaff(salon.id, null, { name: "Mia", color: "rubin", hours: [
+    { weekday: 2, startMin: 9 * 60, endMin: 11 * 60 },
+    { weekday: 4, startMin: 9 * 60, endMin: 13 * 60 },
+  ] });
   haircut = await saveService(salon.id, null, { name: "Šišanje", durationMin: 60, price: 25, staffIds: [mia] });
   const conv = await getOrCreateConversation(salon.id, "chat", crypto.randomUUID());
-  ctx = { salon, conversationId: conv.id, channel: "chat", staffName: new Map([[mia, "Mia"]]) };
+  ctx = { salon, conversationId: conv.id, channel: "chat", staffName: new Map([[mia, "Mia"]]), offeredTimes: new Set(["09:00", "09:30"]) };
 });
 
 afterAll(async () => {
@@ -50,7 +53,7 @@ describe("alati recepcionera", () => {
   it("upisuje termin označen kao chat i vezan za razgovor", async () => {
     const r = await call("book_appointment", {
       service_ids: [haircut], staff_id: null, date: tuesday, time: "09:00",
-      client_name: "Ena Test", client_phone: "061 321 654", notes: null,
+      client_name: "Ena Test", client_phone: "061 321 654", notes: null, additional_booking: false,
     });
     expect(r).toMatchObject({ booked: true, start: "09:00", end: "10:00", staff: "Mia" });
     const appt = await db.query.appointments.findFirst({ where: eq(appointments.conversationId, ctx.conversationId) });
@@ -60,7 +63,7 @@ describe("alati recepcionera", () => {
   it("ne može upisati zauzet termin — vraća grešku koju AI objašnjava", async () => {
     const r = await call("book_appointment", {
       service_ids: [haircut], staff_id: mia, date: tuesday, time: "09:30",
-      client_name: "Drugi", client_phone: "061 999 000", notes: null,
+      client_name: "Drugi", client_phone: "061 999 000", notes: null, additional_booking: true,
     });
     expect(r.code).toBe("SLOT_TAKEN");
   });
@@ -78,7 +81,67 @@ describe("alati recepcionera", () => {
   });
 
   it("odbija neispravne argumente bez rušenja", async () => {
-    const r = await call("book_appointment", { service_ids: ["nije-uuid"], staff_id: null, date: "sutra", time: "9", client_name: "X", client_phone: "1", notes: null });
+    const r = await call("book_appointment", { service_ids: ["nije-uuid"], staff_id: null, date: "sutra", time: "9", client_name: "X", client_phone: "1", notes: null, additional_booking: false });
     expect(r.error).toBeTruthy();
+  });
+});
+
+// Scenarij iz stvarnog testa: AI je ponudio 15:00, a upisao 09:35 i zatim napravio drugi termin.
+describe("zaštite od grešaka AI-ja", () => {
+  let thursday = addDays(tuesday, 2);
+  let ctx2: ToolContext;
+  let firstId: string;
+  const book = (time: string, additional = false) =>
+    runTool(ctx2, "book_appointment", JSON.stringify({
+      service_ids: [haircut], staff_id: null, date: thursday, time,
+      client_name: "Marko Test", client_phone: "066 555 555", notes: null, additional_booking: additional,
+    })).then((r) => r.result as Record<string, unknown>);
+
+  beforeAll(async () => {
+    while (isoWeekday(thursday) !== 4) thursday = addDays(thursday, 1);
+    const conv = await getOrCreateConversation(salon.id, "chat", crypto.randomUUID());
+    ctx2 = { ...ctx, conversationId: conv.id, offeredTimes: new Set(["10:00"]) };
+  });
+
+  it("ne upisuje vrijeme koje klijentu nije ponuđeno", async () => {
+    const r = await book("09:00");
+    expect(r.code).toBe("NOT_OFFERED");
+  });
+
+  it("upisuje ponuđeno vrijeme", async () => {
+    const r = await book("10:00");
+    expect(r).toMatchObject({ booked: true, start: "10:00" });
+  });
+
+  it("ne pravi drugi termin u istom razgovoru bez izričitog zahtjeva", async () => {
+    ctx2.offeredTimes.add("11:30");
+    const r = await book("11:30");
+    expect(r.code).toBe("ALREADY_BOOKED");
+    firstId = (r.existing as { appointment_id: string }[])[0].appointment_id;
+  });
+
+  it("pomjera postojeći termin umjesto novog", async () => {
+    const r = (await runTool(ctx2, "reschedule_appointment", JSON.stringify({
+      appointment_id: firstId, phone: "066 555 555", date: thursday, time: "11:30", staff_id: null,
+    }))).result as Record<string, unknown>;
+    expect(r).toMatchObject({ rescheduled: true, start: "11:30", end: "12:30", staff: "Mia" });
+    const active = await db.query.appointments.findMany({
+      where: and(eq(appointments.conversationId, ctx2.conversationId), inArray(appointments.status, ["booked", "confirmed"])),
+    });
+    expect(active).toHaveLength(1);
+    expect(toLocalMinutes(active[0].startsAt, TZ)).toBe(11 * 60 + 30);
+  });
+
+  it("ni pomjeranje ne prihvata neponuđeno vrijeme", async () => {
+    const r = (await runTool(ctx2, "reschedule_appointment", JSON.stringify({
+      appointment_id: firstId, phone: "066 555 555", date: thursday, time: "09:00", staff_id: null,
+    }))).result as Record<string, unknown>;
+    expect(r, JSON.stringify(r)).toMatchObject({ code: "NOT_OFFERED" });
+  });
+
+  it("dodatni termin je dozvoljen kad ga klijent izričito traži", async () => {
+    ctx2.offeredTimes.add("09:00");
+    const r = await book("09:00", true);
+    expect(r.booked).toBe(true);
   });
 });

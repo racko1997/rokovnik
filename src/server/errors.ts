@@ -21,7 +21,9 @@ export type DomainErrorCode =
   | "SLUG_TAKEN"
   | "FORBIDDEN"
   | "TOO_EARLY"
-  | "TOO_FAR";
+  | "TOO_FAR"
+  | "NOT_OFFERED"
+  | "ALREADY_BOOKED";
 
 /** Postgres kodovi koje prevodimo u domenske greške. */
 export function isExclusionViolation(err: unknown): boolean {

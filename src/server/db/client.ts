@@ -12,8 +12,10 @@ function createDb() {
     throw new Error("DATABASE_URL koristi Supabase Transaction pooler (port 6543). Koristite Session pooler (port 5432).");
   }
 
-  // Na Vercelu svaka funkcija drži malo konekcija, da ne potroši limit poolera
-  const client = postgres(url, { max: process.env.VERCEL ? 2 : 10 });
+  // Supabase Session pooler ima ograničen broj konekcija koje dijele svi (lokalni
+  // server, Vercel, testovi) — zato mali pool. Može se promijeniti s DB_POOL_MAX.
+  const max = Number(process.env.DB_POOL_MAX) || (process.env.VERCEL ? 2 : 5);
+  const client = postgres(url, { max, idle_timeout: 20 });
   return drizzle(client, { schema, casing: "snake_case" });
 }
 

@@ -10,5 +10,8 @@ export default defineConfig({
     include: [dbTests ? "src/**/*.db.test.ts" : "src/**/*.test.ts"],
     exclude: dbTests ? [] : ["src/**/*.db.test.ts", "node_modules/**"],
     fileParallelism: !dbTests,
+    // Udaljena baza (Supabase) zna biti spora — testovi nad bazom dobijaju više vremena
+    testTimeout: dbTests ? 30_000 : 5_000,
+    hookTimeout: dbTests ? 30_000 : 10_000,
   },
 });

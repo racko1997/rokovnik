@@ -658,3 +658,52 @@ export async function moveAppointment(salon: Salon, raw: z.input<typeof moveAppo
     throw err;
   }
 }
+
+// ─── Pomjeranje termina na zahtjev klijenta (AI recepcioner) ────────────────
+
+/**
+ * Klijent pomjera svoj termin: isti broj telefona, nova pravila kao za online
+ * zakazivanje (radno vrijeme, minimalni razmak, slobodan radnik). Termin se
+ * premješta — ne pravi se novi, pa nema duplih rezervacija.
+ */
+export async function rescheduleByClient(
+  salon: Salon,
+  input: { appointmentId: string; phone: string; startsAt: Date; staffId?: string },
+  opts: { now?: Date } = {},
+) {
+  const now = opts.now ?? new Date();
+  const own = await listUpcomingByPhone(salon.id, input.phone, now);
+  const appt = own.find((a) => a.appointmentId === input.appointmentId);
+  if (!appt) throw new DomainError("NOT_FOUND", "Nema budućeg termina s tim brojem telefona.");
+  if (appt.staffIds.length !== 1) {
+    throw new DomainError("INVALID_INPUT", "Ovaj termin ima više radnika — pomjeranje dogovorite sa salonom.");
+  }
+  const fromStaffId = appt.staffIds[0];
+  const items = await loadBlock(salon.id, input.appointmentId, fromStaffId);
+  const serviceIds = [...new Set(items.map((i) => i.serviceId))];
+  const list = await loadServices(db, salon.id, serviceIds, "public");
+
+  const start = input.startsAt.getTime();
+  const end = start + totalBlockMin(list) * MIN;
+  const { earliest, lastDate } = bookingWindow(salon, "public", now);
+  const date = toLocalDate(input.startsAt, salon.timezone);
+  if (earliest !== undefined && start < earliest) {
+    throw new DomainError("TOO_EARLY", "Taj termin je prekasno za online promjenu. Odaberite kasniji.");
+  }
+  if (lastDate && date > lastDate) {
+    throw new DomainError("TOO_FAR", `Termine je moguće zakazati najviše ${salon.maxAdvanceDays} dana unaprijed.`);
+  }
+
+  const candidates = await eligibleStaffIds(db, salon.id, serviceIds, "public", input.staffId);
+  // Postojeći radnik ima prednost, pa ostali redom
+  const ordered = [fromStaffId, ...candidates.filter((id) => id !== fromStaffId)].filter((id) => candidates.includes(id));
+  if (!ordered.length) throw new DomainError("STAFF_CANT_DO_SERVICE", "Taj radnik ne radi ovu uslugu.");
+
+  const days = await loadStaffDays(db, salon, ordered, date, 2, input.appointmentId);
+  const staffDays = [...(days.get(date) ?? []), ...(days.get(addDays(date, 1)) ?? [])];
+  const free = ordered.filter((id) => staffDays.filter((d) => d.staffId === id).some((d) => isFree(d, { start, end })));
+  if (!free.length) throw new DomainError("SLOT_TAKEN", "Taj termin nije slobodan. Odaberite drugi.");
+
+  await moveAppointment(salon, { appointmentId: input.appointmentId, fromStaffId, toStaffId: free[0], startsAt: input.startsAt });
+  return { staffId: free[0], startsAt: input.startsAt, endsAt: new Date(start + (items.at(-1)!.endsAt.getTime() - items[0].startsAt.getTime())) };
+}
