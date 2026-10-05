@@ -1,7 +1,15 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      // Česte varijante adrese admin stranice
+      { source: "/admin", destination: "/admin/prijave", permanent: false },
+      { source: "/admin/prijava", destination: "/admin/prijave", permanent: false },
+    ];
+  },
+};
 
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
