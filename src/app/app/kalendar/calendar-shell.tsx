@@ -39,7 +39,10 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
 
   const href = (patch: Record<string, string | null>) => {
     const p = new URLSearchParams(params.toString());
-    for (const [k, v] of Object.entries(patch)) (v === null ? p.delete(k) : p.set(k, v));
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null) p.delete(k);
+      else p.set(k, v);
+    }
     const s = p.toString();
     return s ? `?${s}` : "?";
   };

@@ -13,9 +13,7 @@ import {
   eligibleStaffIds,
   loadServices,
   loadStaffDays,
-  MIN,
   segmentIntervals,
-  totalBlockMin,
   type Status,
 } from "./shared";
 import { setAppointmentStatus } from "./status";
@@ -103,7 +101,6 @@ export async function rescheduleByClient(
   const list = await loadServices(db, salon.id, serviceIds, "public");
 
   const start = input.startsAt.getTime();
-  const end = start + totalBlockMin(list) * MIN;
   const { earliest, lastDate } = bookingWindow(salon, "public", now);
   const date = toLocalDate(input.startsAt, salon.timezone);
   if (earliest !== undefined && start < earliest) {

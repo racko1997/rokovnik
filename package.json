@@ -6,7 +6,7 @@
     "dev": "cross-env NODE_OPTIONS=--use-system-ca next dev -p 3100",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "db:start": "tsx scripts/dev-db.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

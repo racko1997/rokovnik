@@ -15,7 +15,6 @@ import {
   loadStaffDays,
   MIN,
   segmentIntervals,
-  totalBlockMin,
   type BookingMode,
 } from "./shared";
 
@@ -56,7 +55,6 @@ export async function createAppointment(
   }
 
   const start = input.startsAt.getTime();
-  const blockEnd = start + totalBlockMin(list) * MIN;
   const { earliest, lastDate } = bookingWindow(salon, opts.mode, now);
   const date = toLocalDate(input.startsAt, salon.timezone);
   if (earliest !== undefined && start < earliest) {
