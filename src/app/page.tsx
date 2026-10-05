@@ -118,7 +118,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/registracija" size="lg">
-                Otvori salon besplatno
+                Postavi salon za 5 minuta
               </ButtonLink>
               <ButtonLink href="/s/studio-lana" size="lg" variant="secondary">
                 Probaj kao klijent
@@ -276,8 +276,8 @@ export default function Home() {
               <p className="text-sm font-medium text-lacquer">Pilot program</p>
               <h2 className="mt-2 font-display text-4xl leading-tight">Prvi saloni koriste {APP_NAME} besplatno</h2>
               <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
-                Tražimo salone koji žele manje telefoniranja i dopisivanja. Mi postavimo sve umjesto vas, a vaše iskustvo oblikuje šta gradimo
-                sljedeće.
+                Tražimo salone koji žele manje telefoniranja i dopisivanja. Možete postaviti salon sami za par minuta — ili ostavite
+                podatke, pa vam se javimo i postavimo sve umjesto vas.
               </p>
               <ul className="mt-6 space-y-3">
                 {["Kalendar, smjene i online zakazivanje", "AI recepcioner u web chatu", "Postavljanje usluga i radnika umjesto vas", "Bez ugovora i kartice"].map(
@@ -289,8 +289,18 @@ export default function Home() {
                   ),
                 )}
               </ul>
+              <div className="mt-8 rounded-[var(--radius-chip)] bg-porcelain/70 p-4 ring-1 ring-line">
+                <p className="font-medium">Želite odmah?</p>
+                <p className="mt-0.5 text-sm text-ink-soft">Napravite nalog i postavite salon sami — čarobnjak vas vodi kroz usluge, radnike i radno vrijeme.</p>
+                <ButtonLink href="/registracija" variant="secondary" className="mt-3">
+                  Postavi salon sam/a →
+                </ButtonLink>
+              </div>
             </div>
-            <PilotForm />
+            <div>
+              <p className="mb-4 font-display text-2xl">Ili ostavite podatke — mi postavimo sve</p>
+              <PilotForm />
+            </div>
           </div>
         </section>
 
@@ -316,7 +326,7 @@ export default function Home() {
             <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">Manje telefoniranja. Više vremena za klijenta u stolici.</h2>
             <div className="flex flex-wrap gap-3">
               <ButtonLink href="/registracija" size="lg">
-                Otvori salon besplatno
+                Postavi salon za 5 minuta
               </ButtonLink>
               <Link
                 href="/s/studio-lana"

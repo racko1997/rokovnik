@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { submitPilotLeadAction } from "@/app/pilot-actions";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, FormError, Input, Select, Textarea } from "@/components/ui/field";
 
 export function PilotForm() {
@@ -39,7 +39,10 @@ export function PilotForm() {
           <Check size={20} />
         </span>
         <p className="font-display text-2xl">Hvala, prijava je stigla</p>
-        <p className="text-ink-soft">Javićemo vam se telefonom da dogovorimo postavljanje. Dok čekate, možete probati zakazivanje kao klijent.</p>
+        <p className="text-ink-soft">Javićemo vam se telefonom da dogovorimo postavljanje. Ako ne želite čekati, salon možete postaviti i sami — traje par minuta.</p>
+        <ButtonLink href="/registracija" className="mt-1">
+          Postavi salon odmah
+        </ButtonLink>
       </div>
     );
   }
