@@ -1,5 +1,6 @@
-// Boje termina u kalendaru. Salon bira izvor boje: status, kategorija usluge ili radnik.
+// Boje termina u kalendaru. Salon bira izvor boje: usluga (zadano), status ili radnik.
 // Crvena (lak) je rezervisana za termine van radnog vremena — nijedan režim je ne koristi.
+import { serviceColor } from "@/lib/service-colors";
 import { swatch } from "@/lib/swatches";
 import type { CalBlock, ColorMode, Status } from "./types";
 
@@ -20,34 +21,26 @@ export const STATUS_TONE: Record<Status, { accent: string; label: string }> = {
   cancelled: { accent: "#9A92A3", label: "Otkazano" },
 };
 
-/** Boje kategorija usluga, dodjeljuju se redom kojim su kategorije u cjenovniku. */
-const CATEGORY_PALETTE = ["#5B6FB5", "#B2742A", "#3E8A7A", "#9B4F96", "#6E7F3A", "#4C7FA8", "#A3574A", "#7A6A3E"];
+export const tint = (hex: string, pct = 14) => `color-mix(in oklab, ${hex} ${pct}%, var(--paper))`;
 
-const tint = (hex: string, pct = 14) => `color-mix(in oklab, ${hex} ${pct}%, var(--paper))`;
-
-export function categoryColors(categories: (string | null)[]): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const c of categories) {
-    const key = c ?? "Ostalo";
-    if (!map.has(key)) map.set(key, CATEGORY_PALETTE[map.size % CATEGORY_PALETTE.length]);
-  }
-  return map;
+/** Ton jedne usluge (za trake unutar posjete s više usluga). */
+export function serviceTone(colorKey: string): BlockTone {
+  const accent = serviceColor(colorKey).hex;
+  return { accent, fill: tint(accent, 16) };
 }
 
 export function blockTone(
   block: CalBlock,
   mode: ColorMode,
-  ctx: { staffColor: string; categoryOf: (serviceId: string) => string | null; categoryColor: Map<string, string> },
+  ctx: { staffColor: string; serviceColorOf: (serviceId: string) => string },
 ): BlockTone {
+  // Završeni termini su uvijek prigušeni, u svakom režimu
   if (block.status === "completed") return { accent: STATUS_TONE.completed.accent, fill: "var(--porcelain)", muted: true };
   if (mode === "status") {
     const accent = STATUS_TONE[block.status].accent;
     return { accent, fill: tint(accent, block.status === "booked" ? 11 : 14) };
   }
-  if (mode === "usluga") {
-    const accent = ctx.categoryColor.get(ctx.categoryOf(block.services[0].id) ?? "Ostalo") ?? CATEGORY_PALETTE[0];
-    return { accent, fill: tint(accent) };
-  }
+  if (mode === "usluga") return serviceTone(ctx.serviceColorOf(block.services[0]?.id ?? ""));
   const accent = swatch(ctx.staffColor).hex;
   return { accent, fill: tint(accent, 16) };
 }

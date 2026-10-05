@@ -1,6 +1,7 @@
 // Usluge i kategorije (cjenovnik salona).
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { nextServiceColor, SERVICE_COLORS, type ServiceColorKey } from "@/lib/service-colors";
 import { db, type Tx } from "../db/client";
 import { serviceCategories, services, staff, staffServices } from "../db/schema";
 import { DomainError } from "../errors";
@@ -32,6 +33,8 @@ export const serviceInput = z
   price: z.coerce.number().min(0, "Cijena ne može biti negativna.").max(100000),
   priceFrom: z.coerce.boolean().default(false),
   bookableOnline: z.coerce.boolean().default(true),
+  /** Boja u kalendaru; bez nje nova usluga dobija prvu slobodnu */
+  color: z.enum(SERVICE_COLORS.map((c) => c.key) as [ServiceColorKey, ...ServiceColorKey[]]).optional(),
   staffIds: z.array(z.uuid()).default([]),
   })
   .refine((v) => v.gapMin === 0 || (v.gapStartMin > 0 && v.gapStartMin + v.gapMin < v.durationMin), {
@@ -95,6 +98,7 @@ export async function saveService(salonId: string, id: string | null, raw: z.inp
       priceCents: Math.round(input.price * 100),
       priceFrom: input.priceFrom,
       bookableOnline: input.bookableOnline,
+      ...(input.color && { color: input.color }),
     };
 
     let serviceId = id;
@@ -106,7 +110,11 @@ export async function saveService(salonId: string, id: string | null, raw: z.inp
         .returning({ id: services.id });
       if (!updated.length) throw new DomainError("NOT_FOUND", "Usluga ne postoji.");
     } else {
-      const [created] = await tx.insert(services).values({ ...values, salonId }).returning({ id: services.id });
+      const used = input.color ? [] : (await tx.select({ color: services.color }).from(services).where(eq(services.salonId, salonId))).map((r) => r.color);
+      const [created] = await tx
+        .insert(services)
+        .values({ ...values, color: input.color ?? nextServiceColor(used), salonId })
+        .returning({ id: services.id });
       serviceId = created.id;
     }
 

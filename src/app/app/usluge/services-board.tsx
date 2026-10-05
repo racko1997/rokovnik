@@ -9,6 +9,7 @@ import { Sheet } from "@/components/ui/dialog";
 import { Field, FormError, Input, Textarea, Toggle } from "@/components/ui/field";
 import { Swatch } from "@/components/ui/swatch";
 import { formatDuration, formatPrice } from "@/lib/format";
+import { SERVICE_COLORS, serviceColor, type ServiceColorKey } from "@/lib/service-colors";
 import { saveServiceAction, setServiceActiveAction } from "./actions";
 
 export interface ServiceRow {
@@ -20,6 +21,7 @@ export interface ServiceRow {
   bufferMin: number;
   gapStartMin: number;
   gapMin: number;
+  color: string;
   priceCents: number;
   priceFrom: boolean;
   bookableOnline: boolean;
@@ -88,6 +90,7 @@ export function ServicesBoard({
                   >
                     <span className="min-w-0">
                       <span className="flex items-center gap-2 font-medium">
+                        <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: serviceColor(s.color).hex }} aria-hidden />
                         <span className="truncate">{s.name}</span>
                         {!s.bookableOnline && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-wash px-2 py-0.5 text-xs font-medium text-amber">
@@ -202,6 +205,7 @@ function ServiceSheet({
   const [gapStart, setGapStart] = useState(existing?.gapMin ? existing.gapStartMin : 30);
   const [gapLen, setGapLen] = useState(existing?.gapMin || 30);
   const [buffer, setBuffer] = useState(existing?.bufferMin ?? 0);
+  const [color, setColor] = useState<string | undefined>(existing?.color);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -217,6 +221,7 @@ function ServiceSheet({
         bufferMin: buffer,
         gapStartMin: gapOn ? gapStart : 0,
         gapMin: gapOn ? gapLen : 0,
+        color: color as ServiceColorKey | undefined,
         price: Number(String(f.get("price")).replace(",", ".")),
         priceFrom: f.get("priceFrom") === "on",
         bookableOnline: f.get("bookableOnline") === "on",
@@ -260,6 +265,29 @@ function ServiceSheet({
         <Field label="Naziv">
           <Input name="name" defaultValue={existing?.name} required autoFocus={!existing} placeholder="npr. Žensko šišanje" />
         </Field>
+
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">
+            Boja u kalendaru {!existing && !color && <span className="font-normal text-ink-soft">— automatski, ako ne odaberete</span>}
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {SERVICE_COLORS.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setColor(c.key)}
+                aria-pressed={color === c.key}
+                aria-label={c.name}
+                title={c.name}
+                className={clsx(
+                  "h-8 w-8 rounded-full transition-transform",
+                  color === c.key ? "scale-110 ring-2 ring-ink ring-offset-2 ring-offset-paper" : "hover:scale-105",
+                )}
+                style={{ background: c.hex }}
+              />
+            ))}
+          </div>
+        </fieldset>
 
         <Field label="Kategorija" hint="Grupiše usluge u cjenovniku. Upišite novu ili odaberite postojeću.">
           <Input name="categoryName" defaultValue={existing?.categoryName ?? ""} list="categories" placeholder="npr. Žene" />

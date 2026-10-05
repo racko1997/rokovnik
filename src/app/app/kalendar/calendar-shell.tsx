@@ -11,7 +11,8 @@ import { formatClock, formatLocalDateLong, formatPrice, MONTHS_GENITIVE, plural,
 import { AgendaList } from "./agenda-list";
 import { AppointmentSheet } from "./appointment-sheet";
 import { moveAppointmentAction } from "./actions";
-import { blockTone, categoryColors, STATUS_TONE } from "./colors";
+import { blockTone, serviceTone, STATUS_TONE } from "./colors";
+import { serviceColor } from "@/lib/service-colors";
 import { NewAppointmentSheet, type Draft } from "./new-appointment-sheet";
 import { TimeGrid, type GridColumn } from "./time-grid";
 import { toBlocks, type CalBlock, type CalendarData, type ColorMode, type Density, type View } from "./types";
@@ -55,13 +56,11 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
   const dayOf = (staffId: string, date: string) => data.staffDays.find((d) => d.staffId === staffId && d.date === date);
 
   // Boje
-  const categoryOfService = useMemo(() => new Map(data.services.map((s) => [s.id, s.categoryName])), [data.services]);
-  const catColors = useMemo(() => categoryColors(data.services.map((s) => s.categoryName)), [data.services]);
+  const colorOfService = useMemo(() => new Map(data.services.map((s) => [s.id, s.color])), [data.services]);
   const toneFor = (b: CalBlock) =>
     blockTone(b, colorMode, {
       staffColor: staffById.get(b.staffId)?.color ?? "rubin",
-      categoryOf: (id) => categoryOfService.get(id) ?? null,
-      categoryColor: catColors,
+      serviceColorOf: (id) => colorOfService.get(id) ?? "siva",
     });
 
   // Filter radnika (dan i lista)
@@ -142,6 +141,16 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
   }
 
   // Statistika za prikazani dan/sedmicu
+  // Legenda boja: usluge koje se vide na ekranu
+  const legendServices = useMemo(() => {
+    const seen = new Map<string, { name: string; color: string }>();
+    for (const b of columns.flatMap((c) => c.blocks)) {
+      for (const sv of b.services) if (!seen.has(sv.id)) seen.set(sv.id, { name: sv.name, color: colorOfService.get(sv.id) ?? "siva" });
+    }
+    return [...seen.values()];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.items, visibleStaff, weekStaff, colorOfService]);
+
   const stats = useMemo(() => {
     // Statistika prati ono što je na ekranu (npr. samo "Moji termini")
     const shown = isWeek
@@ -264,7 +273,7 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
               </div>
             )}
             <div className="hidden items-center gap-2 sm:flex">
-              <Legend mode={colorMode} catColors={catColors} />
+              <Legend mode={colorMode} services={legendServices} />
               <label className="flex items-center gap-1.5 text-sm text-ink-soft">
                 Boja
                 <select
@@ -333,6 +342,7 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
                   nowMin={data.nowMin}
                   conflictKeys={conflictKeys}
                   toneFor={toneFor}
+                  partTone={colorMode === "usluga" ? (id) => serviceTone(colorOfService.get(id) ?? "siva") : undefined}
                   onSelect={setSelected}
                   onEmptyClick={(col, startMin) => setDraft({ staffId: col.staffId, date: col.date, startMin })}
                   onMove={onMove}
@@ -446,16 +456,16 @@ function Chip({ active, dim, href, color, label }: { active: boolean; dim?: bool
   );
 }
 
-function Legend({ mode, catColors }: { mode: ColorMode; catColors: Map<string, string> }) {
+function Legend({ mode, services }: { mode: ColorMode; services: { name: string; color: string }[] }) {
   const entries: [string, string][] =
     mode === "status"
       ? (["booked", "confirmed", "completed", "no_show"] as const).map((s) => [STATUS_TONE[s].label, STATUS_TONE[s].accent])
       : mode === "usluga"
-        ? [...catColors.entries()]
+        ? services.slice(0, 8).map((s) => [s.name, serviceColor(s.color).hex])
         : [];
   if (!entries.length) return null;
   return (
-    <span className="hidden items-center gap-3 text-xs text-ink-soft xl:flex">
+    <span className="hidden max-w-xl flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-soft xl:flex">
       {entries.map(([label, color]) => (
         <span key={label} className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ background: color }} />

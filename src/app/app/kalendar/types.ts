@@ -49,6 +49,8 @@ export interface CalItem {
 export interface CalService {
   id: string;
   name: string;
+  /** Ključ boje usluge (src/lib/service-colors.ts) */
+  color: string;
   categoryName: string | null;
   durationMin: number;
   bufferMin: number;
@@ -74,6 +76,8 @@ export interface CalBlock {
   services: { id: string; name: string; priceCents: number }[];
   /** Vrijeme djelovanja: rupe u kojima je radnik slobodan */
   gaps: { startMin: number; endMin: number }[];
+  /** Dijelovi posjete po uslugama (za trake u boji svake usluge) */
+  parts: { serviceId: string; name: string; startMin: number; endMin: number; continuation: boolean }[];
 }
 
 export interface CalendarAlerts {
@@ -159,6 +163,7 @@ export function toBlocks(items: CalItem[]): CalBlock[] {
       // Nastavak usluge nakon djelovanja nije nova usluga
       services: sorted.filter((x) => x.part === 0).map((x) => ({ id: x.serviceId, name: x.serviceName, priceCents: x.priceCents })),
       gaps,
+      parts: sorted.map((x) => ({ serviceId: x.serviceId, name: x.serviceName, startMin: x.startMin, endMin: x.endMin, continuation: x.part === 1 })),
     };
   });
 }

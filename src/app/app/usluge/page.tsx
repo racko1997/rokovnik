@@ -28,6 +28,7 @@ export default async function ServicesPage() {
         bufferMin: s.bufferMin,
         gapStartMin: s.gapStartMin,
         gapMin: s.gapMin,
+        color: s.color,
         priceCents: s.priceCents,
         priceFrom: s.priceFrom,
         bookableOnline: s.bookableOnline,

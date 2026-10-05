@@ -260,6 +260,8 @@ export const services = pgTable(
     gapMin: integer().notNull().default(0),
     /** Cijena u feninzima/centima, da izbjegnemo greške zaokruživanja. */
     priceCents: integer().notNull(),
+    /** Boja u kalendaru (ključ iz src/lib/service-colors.ts) */
+    color: text().notNull().default("plava"),
     /** "od 30 KM" — konačna cijena zavisi od dužine kose i sl. */
     priceFrom: boolean().notNull().default(false),
     bookableOnline: boolean().notNull().default(true),

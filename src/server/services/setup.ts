@@ -3,6 +3,7 @@
 // da prvi utisak bude brz i da nema "pola postavljenog" salona ako nešto pukne.
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { nextServiceColor } from "@/lib/service-colors";
 import { nextFreeSwatch } from "@/lib/swatches";
 import { db } from "../db/client";
 import { salonMembers, serviceCategories, services, staff, staffServices, workingHours } from "../db/schema";
@@ -65,10 +66,18 @@ export async function applyQuickSetup(salonId: string, ownerUserId: string, raw:
       for (const c of created) catId.set(c.name.toLowerCase(), c.id);
     }
 
+    // Svaka usluga svoja boja, nastavljajući na postojeće u salonu
+    const usedColors = (await tx.select({ color: services.color }).from(services).where(eq(services.salonId, salonId))).map((r) => r.color);
+    const colors = input.services.map((s) => {
+      const color = s.color ?? nextServiceColor(usedColors);
+      usedColors.push(color);
+      return color;
+    });
     const createdServices = await tx
       .insert(services)
       .values(
         input.services.map((s, i) => ({
+          color: colors[i],
           salonId,
           categoryId: catId.get(s.categoryName.toLowerCase())!,
           name: s.name,

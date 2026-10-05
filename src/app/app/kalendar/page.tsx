@@ -29,7 +29,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     view === "sedmica" ? Array.from({ length: 7 }, (_, i) => addDays(addDays(date, 1 - isoWeekday(date)), i)) : [date];
 
   const jar = await cookies();
-  const colorMode = (["status", "usluga", "radnik"].includes(jar.get("cal_color")?.value ?? "") ? jar.get("cal_color")!.value : "status") as ColorMode;
+  // Zadano: boja usluge (kao u Lime/Fresha) — status se vidi kroz ikone
+  const colorMode = (["status", "usluga", "radnik"].includes(jar.get("cal_color")?.value ?? "") ? jar.get("cal_color")!.value : "usluga") as ColorMode;
   const density = (jar.get("cal_density")?.value === "zbijeno" ? "zbijeno" : "udobno") as Density;
 
   const range = { start: dayBounds(days[0], tz).start, end: dayBounds(days[days.length - 1], tz).end };
@@ -117,6 +118,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       priceCents: s.priceCents,
       priceFrom: s.priceFrom,
       staffIds: s.staffIds,
+      color: s.color,
     })),
     conflictKeys: conflictsInRange.map((c) => `${c.appointmentId}:${c.staffId}`),
     alerts: { unconfirmedTomorrow, conflictsAhead: conflictsAhead.length, handoffs },

@@ -39,6 +39,7 @@ export function TimeGrid({
   nowMin,
   conflictKeys,
   toneFor,
+  partTone,
   onSelect,
   onEmptyClick,
   onMove,
@@ -51,6 +52,8 @@ export function TimeGrid({
   nowMin: number;
   conflictKeys: Set<string>;
   toneFor: (b: CalBlock) => BlockTone;
+  /** Boja pojedine usluge — kad je zadana, posjeta s više usluga se crta u trakama */
+  partTone?: (serviceId: string) => BlockTone;
   onSelect: (b: CalBlock) => void;
   onEmptyClick: (col: GridColumn, startMin: number) => void;
   /** Vraća true ako je pomjeranje uspjelo; inače se blok vraća na staro mjesto. */
@@ -195,6 +198,7 @@ export function TimeGrid({
                   dayStart={dayStart}
                   px={px}
                   tone={toneFor(b)}
+                  partTone={partTone}
                   conflict={conflictKeys.has(b.key)}
                   indent={c.blocks.some((o) => o.key !== b.key && o.gaps.some((g) => b.startMin >= g.startMin && b.endMin <= g.endMin))}
                   onPointerDown={(e) => onBlockPointerDown(e, b, c.key)}
@@ -211,6 +215,7 @@ export function TimeGrid({
                 dayStart={dayStart}
                 px={px}
                 tone={toneFor(ghost.block)}
+                partTone={partTone}
                 conflict={false}
                 ghost
                 saving={Boolean(pending)}
@@ -317,6 +322,7 @@ function Block({
   dayStart,
   px,
   tone,
+  partTone,
   conflict,
   indent,
   ghost,
@@ -329,6 +335,7 @@ function Block({
   dayStart: number;
   px: number;
   tone: BlockTone;
+  partTone?: (serviceId: string) => BlockTone;
   conflict: boolean;
   /** Termin upisan u vrijeme djelovanja drugog termina — uvučen da se vidi oboje */
   indent?: boolean;
@@ -376,12 +383,38 @@ function Block({
     noShow && "opacity-55",
     conflict && "ring-2 ring-lacquer",
   );
+  // Posjeta s više usluga: svaka usluga svoja traka u svojoj boji (npr. pramenovi + feniranje)
+  const multi = Boolean(partTone) && !conflict && !tone.muted && new Set(b.parts.map((p) => p.serviceId)).size > 1;
   const segmentStyle = (from: number, to: number) => ({
     top: (from + shift - dayStart) * px + 1,
     height: (to - from) * px - 2,
-    background: conflict ? "var(--lacquer-wash)" : tone.fill,
-    boxShadow: `inset 3px 0 0 ${accent}`,
+    background: multi ? "var(--paper)" : conflict ? "var(--lacquer-wash)" : tone.fill,
+    boxShadow: multi ? "none" : `inset 3px 0 0 ${accent}`,
   });
+  const bands = (from: number, to: number, labelFirst: boolean) =>
+    multi
+      ? b.parts
+          .filter((p) => p.endMin > from && p.startMin < to)
+          .map((p, i) => {
+            const t = partTone!(p.serviceId);
+            const top = (Math.max(p.startMin, from) - from) * px;
+            const height = (Math.min(p.endMin, to) - Math.max(p.startMin, from)) * px;
+            return (
+              <span
+                key={`${p.serviceId}-${p.startMin}`}
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 overflow-hidden"
+                style={{ top, height, background: t.fill, boxShadow: `inset 3px 0 0 ${t.accent}` }}
+              >
+                {(labelFirst || i > 0) && height >= 18 && (
+                  <span className="absolute top-0.5 left-2.5 truncate text-[0.6875rem] font-medium" style={{ color: t.accent }}>
+                    {p.continuation ? `↳ ${p.name}` : p.name}
+                  </span>
+                )}
+              </span>
+            );
+          })
+      : null;
 
   return (
     <>
@@ -414,7 +447,8 @@ function Block({
       ))}
 
       <button type="button" {...handlers} className={clsx(segmentClass, compact ? "justify-center px-2 py-0.5" : "px-2.5 py-1.5")} style={segmentStyle(firstStart, firstEnd)}>
-        <span className={clsx("flex items-center gap-1.5 text-[0.875rem] leading-tight", compact && "truncate")}>
+        {bands(firstStart, firstEnd, false)}
+        <span className={clsx("relative flex items-center gap-1.5 text-[0.875rem] leading-tight", compact && "truncate")}>
           <span className={clsx("truncate font-semibold", noShow && "line-through", tone.muted && "text-ink-soft")}>
             {b.client?.name ?? "Bez imena"}
           </span>
@@ -432,8 +466,9 @@ function Block({
         </span>
         {!compact && (
           <>
-            <span className="truncate text-[0.8125rem] leading-snug text-ink-soft">{b.services.map((s) => s.name).join(" + ")}</span>
-            <span className="tabular mt-auto flex flex-wrap items-center gap-1.5 pt-0.5 text-[0.75rem] text-ink-soft">
+            {!multi && <span className="truncate text-[0.8125rem] leading-snug text-ink-soft">{b.services.map((s) => s.name).join(" + ")}</span>}
+            {multi && <span className="relative truncate text-[0.8125rem] leading-snug text-ink-soft">{b.parts[0].name}</span>}
+            <span className="tabular relative mt-auto flex flex-wrap items-center gap-1.5 pt-0.5 text-[0.75rem] text-ink-soft">
               {formatClock(startMin)}–{formatClock(endMin)}
               {b.status === "confirmed" && <span className="font-semibold text-mint">✓</span>}
               {source && (
@@ -449,7 +484,8 @@ function Block({
 
       {segments.slice(1).map(([from, to]) => (
         <button key={from} type="button" {...handlers} className={clsx(segmentClass, "justify-center px-2 py-0.5")} style={segmentStyle(from, to)}>
-          <span className="truncate text-[0.75rem] text-ink-soft">
+          {bands(from, to, true)}
+          <span className={clsx("relative truncate text-[0.75rem] text-ink-soft", multi && "sr-only")}>
             ↳ nastavak · <span className="font-medium text-ink">{b.client?.name ?? "Bez imena"}</span>
           </span>
         </button>
