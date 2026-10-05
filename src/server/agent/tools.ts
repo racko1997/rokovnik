@@ -1,5 +1,6 @@
 // Alati AI recepcionera. Svaki alat je tanak omotač oko servisnog sloja —
 // ista pravila kao dashboard i javna stranica. AI vidi samo rezultat (JSON).
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { formatPhone } from "@/lib/phone";
 import { isLocalDate, toLocalDate, toLocalMinutes, zonedToUtc } from "../domain/time";
@@ -313,6 +314,7 @@ export async function runTool(ctx: ToolContext, name: string, rawArgs: string): 
     if (err instanceof DomainError) return { args, result: { error: err.message, code: err.code } };
     if (err instanceof z.ZodError) return { args, result: { error: "Neispravni argumenti.", details: err.issues.map((i) => `${i.path.join(".")}: ${i.message}`) } };
     console.error(`[agent] alat ${name} pao`, err);
+    Sentry.captureException(err, { tags: { area: "agent", tool: name } });
     return { args, result: { error: "Greška u sistemu. Ponudi klijentu da pozove salon." } };
   }
 }

@@ -57,6 +57,13 @@
       "when": 1791145344845,
       "tag": "0007_processing_gap",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791205518210,
+      "tag": "0008_performance_indexes",
+      "breakpoints": true
     }
   ]
 }

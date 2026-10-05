@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 import { DomainError } from "./errors";
 
@@ -26,6 +27,8 @@ export async function runAction<T>(fn: () => Promise<T>): Promise<ActionResult<T
     // redirect() i notFound() iz Next-a moraju proći dalje
     if (err && typeof err === "object" && "digest" in err) throw err;
     console.error(err);
+    // Neočekivane greške (ne poslovne ni validacione) idu u praćenje grešaka
+    Sentry.captureException(err);
     return { ok: false, error: "Nešto nije u redu na serveru. Pokušajte ponovo." };
   }
 }

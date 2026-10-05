@@ -33,7 +33,8 @@ src/
   server/
     db/schema/      Drizzle shema (auth + domen). Svaka tabela ima salon_id.
     domain/         Čista logika bez baze: računanje slobodnih termina, vremenske zone.
-    services/       Poslovna pravila: booking, staff, catalog, clients, salons.
+    services/       Poslovna pravila: booking/ (po modulima), schedule, staff, catalog,
+                    clients, salons, team.
     context.ts      Ko je prijavljen i koji salon je aktivan.
     action.ts       Omotač za server akcije (greške → poruke za korisnika).
   app/
@@ -98,6 +99,15 @@ Migracija `0003` uključuje RLS na svim tabelama bez politika, tako da Supabase 
 - [ ] **Faza 3** — Instagram/Messenger, WhatsApp, Viber
 - [ ] **Faza 4** — glasovni agent (OpenAI Realtime + SIP/preusmjeravanje poziva)
 - [ ] **Faza 5** — pretplate, statistika, prilagođeni domeni
+
+## Kvalitet i praćenje
+
+- **CI (GitHub Actions):** svaki push pokreće tipove, lint, sve testove (nad privremenim
+  PostgreSQL-om, ne Supabase-om), migracije i produkcijski build — `.github/workflows/ci.yml`.
+- **Praćenje grešaka (Sentry):** uključuje se postavljanjem `SENTRY_DSN` i
+  `NEXT_PUBLIC_SENTRY_DSN`; bez njih je isključeno. Neočekivane greške iz server akcija,
+  chata i AI alata se šalju automatski; poslovne greške (npr. "termin zauzet") ne.
+- **Region:** Vercel funkcije rade u Dublinu (`vercel.json`), pored Supabase baze u Irskoj.
 
 ## Vercel
 

@@ -1,0 +1,4 @@
+# Isti krajevi redova na svim računarima (Windows, CI, Vercel)
+* text=auto eol=lf
+*.png binary
+*.ico binary

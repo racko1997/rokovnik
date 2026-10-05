@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireSalon } from "@/server/context";
+import { getSalonContext } from "@/server/context";
 import { toLocalMinutes } from "@/server/domain/time";
 import { DomainError } from "@/server/errors";
 import { getAvailability } from "@/server/services/booking";
 
 /** Slobodni termini za recepciju (bez ograničenja za online klijente). */
 export async function GET(req: NextRequest) {
-  const { salon } = await requireSalon();
+  const ctx = await getSalonContext();
+  if (!ctx) return NextResponse.json({ error: "Prijava je istekla. Prijavite se ponovo." }, { status: 401 });
+  const { salon } = ctx;
   const p = req.nextUrl.searchParams;
   try {
     const [day] = await getAvailability(

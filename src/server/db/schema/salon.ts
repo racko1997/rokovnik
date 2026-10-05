@@ -221,6 +221,7 @@ export const timeOff = pgTable(
   },
   (t) => [
     index().on(t.staffId, t.startsAt),
+    index().on(t.salonId, t.startsAt),
     check("time_off_range", sql`${t.startsAt} < ${t.endsAt}`),
   ],
 );
@@ -335,7 +336,12 @@ export const appointments = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index().on(t.salonId, t.startsAt), index().on(t.clientId)],
+  (t) => [
+    index().on(t.salonId, t.startsAt),
+    // "Prva posjeta" u kalendaru traži ranije termine istog klijenta
+    index().on(t.clientId, t.startsAt),
+    index().on(t.conversationId),
+  ],
 );
 
 /**
@@ -408,6 +414,7 @@ export const conversations = pgTable(
   (t) => [
     uniqueIndex("conversations_channel_external_uq").on(t.salonId, t.channel, t.externalId),
     index().on(t.salonId, t.lastMessageAt),
+    index().on(t.salonId, t.status),
   ],
 );
 

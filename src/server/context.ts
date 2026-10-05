@@ -51,10 +51,24 @@ export const requireSalon = cache(async (): Promise<SalonContext> => {
   const memberships = await getMemberships(user.id);
   if (memberships.length === 0) redirect("/novi-salon");
 
+  return activeContext(user.id, memberships);
+});
+
+/** Salon iz kolačića (ako je korisnik i dalje član), inače prvi salon korisnika. */
+async function activeContext(userId: string, memberships: Awaited<ReturnType<typeof getMemberships>>): Promise<SalonContext> {
   const preferred = (await cookies()).get(ACTIVE_SALON_COOKIE)?.value;
   const active = memberships.find((m) => m.salon.id === preferred) ?? memberships[0];
-  return { userId: user.id, role: active.role, staffId: active.staffId, salon: active.salon };
-});
+  return { userId, role: active.role, staffId: active.staffId, salon: active.salon };
+}
+
+/** Za API rute: kontekst ili null (ruta vraća 401 umjesto preusmjeravanja na prijavu). */
+export async function getSalonContext(): Promise<SalonContext | null> {
+  const session = await getSession();
+  if (!session) return null;
+  const memberships = await getMemberships(session.user.id);
+  if (!memberships.length) return null;
+  return activeContext(session.user.id, memberships);
+}
 
 /**
  * Za server akcije: baca grešku ako uloga nema pravo.

@@ -1,0 +1,65 @@
+# Automatske provjere za svaki push i pull request.
+# Testovi nad bazom koriste privremeni PostgreSQL u CI-u — nikad Supabase.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  provjere:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rokovnik
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/rokovnik
+      BETTER_AUTH_SECRET: ci-samo-za-testove-nije-za-produkciju
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalacija
+        run: npm ci
+
+      - name: Tipovi (TypeScript)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testovi (računanje termina, vremenske zone)
+        run: npm test
+
+      - name: Migracije baze
+        run: npx drizzle-kit migrate
+
+      - name: Testovi nad bazom (rezervacije, raspored, AI alati, uloge)
+        run: npm run test:db
+
+      - name: Produkcijski build
+        run: npm run build

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       );
     }
     console.error("[chat]", err);
+    Sentry.captureException(err, { tags: { area: "chat" } });
     return NextResponse.json({ error: "Odgovor nije stigao. Pokušajte ponovo." }, { status: 502 });
   }
 }
