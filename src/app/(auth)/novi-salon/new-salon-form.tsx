@@ -23,7 +23,7 @@ export function NewSalonForm() {
         phone: String(form.get("phone") ?? ""),
       });
       if (!res.ok) return setError(res.error);
-      router.push("/app");
+      router.push("/app/postavljanje");
       router.refresh();
     });
   }

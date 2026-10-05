@@ -435,3 +435,24 @@ export const conversationMessages = pgTable(
   },
   (t) => [index().on(t.conversationId, t.createdAt)],
 );
+
+// ─── Prijave za pilot program (naslovna stranica) ───────────────────────────
+
+export const pilotLeads = pgTable(
+  "pilot_leads",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    salonName: text().notNull(),
+    city: text(),
+    contactName: text().notNull(),
+    phone: text().notNull(),
+    email: text(),
+    salonType: text(),
+    staffCount: text(),
+    message: text(),
+    /** Za praćenje: novo → kontaktiran → pilot / odbijeno */
+    status: text().notNull().default("novo"),
+    createdAt: createdAt(),
+  },
+  (t) => [index().on(t.createdAt)],
+);

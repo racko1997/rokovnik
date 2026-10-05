@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { HeroScene } from "@/components/landing/hero-scene";
+import { PilotForm } from "@/components/landing/pilot-form";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { AgentVisual, BookingVisual, ShiftsVisual } from "@/components/landing/visuals";
 import { ButtonLink } from "@/components/ui/button";
@@ -84,6 +85,9 @@ export default function Home() {
             </a>
             <a href="#pitanja" className="hidden rounded-full px-3 py-2 text-sm text-ink-soft hover:text-ink md:block">
               Pitanja
+            </a>
+            <a href="#pilot" className="hidden rounded-full px-3 py-2 text-sm font-medium text-lacquer hover:text-lacquer-deep md:block">
+              Pilot program
             </a>
             <ButtonLink href="/prijava" variant="ghost" size="sm">
               Prijava
@@ -266,31 +270,27 @@ export default function Home() {
         </section>
 
         {/* Pilot */}
-        <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-          <div data-reveal="scale" className="grid items-center gap-10 rounded-[1.75rem] bg-paper p-8 ring-1 ring-line sm:p-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <section id="pilot" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6">
+          <div data-reveal="scale" className="grid gap-10 rounded-[1.75rem] bg-paper p-6 ring-1 ring-line sm:p-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div>
               <p className="text-sm font-medium text-lacquer">Pilot program</p>
               <h2 className="mt-2 font-display text-4xl leading-tight">Prvi saloni koriste {APP_NAME} besplatno</h2>
               <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
-                Tražimo salone koji žele manje telefoniranja i dopisivanja. Pomažemo vam s postavljanjem, a vaše iskustvo oblikuje šta gradimo
+                Tražimo salone koji žele manje telefoniranja i dopisivanja. Mi postavimo sve umjesto vas, a vaše iskustvo oblikuje šta gradimo
                 sljedeće.
               </p>
+              <ul className="mt-6 space-y-3">
+                {["Kalendar, smjene i online zakazivanje", "AI recepcioner u web chatu", "Postavljanje usluga i radnika umjesto vas", "Bez ugovora i kartice"].map(
+                  (t) => (
+                    <li key={t} className="flex items-center gap-3">
+                      <Check size={17} className="shrink-0 text-mint" strokeWidth={2.5} />
+                      {t}
+                    </li>
+                  ),
+                )}
+              </ul>
             </div>
-            <ul className="space-y-3">
-              {["Kalendar, smjene i online zakazivanje", "AI recepcioner u web chatu", "Pomoć pri unosu usluga i radnika", "Bez ugovora i kartice"].map(
-                (t) => (
-                  <li key={t} className="flex items-center gap-3">
-                    <Check size={17} className="shrink-0 text-mint" strokeWidth={2.5} />
-                    {t}
-                  </li>
-                ),
-              )}
-              <li className="pt-3">
-                <ButtonLink href="/registracija" size="lg" className="w-full sm:w-auto">
-                  Prijavi salon
-                </ButtonLink>
-              </li>
-            </ul>
+            <PilotForm />
           </div>
         </section>
 

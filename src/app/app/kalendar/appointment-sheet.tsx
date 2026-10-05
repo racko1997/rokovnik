@@ -162,6 +162,13 @@ export function AppointmentSheet({
             </section>
           )}
 
+          {block.client?.notes && (
+            <section className="rounded-[var(--radius-chip)] bg-amber-wash/60 px-3 py-2.5 ring-1 ring-amber/20">
+              <h3 className="text-xs font-semibold tracking-[0.08em] text-amber uppercase">O klijentu</h3>
+              <p className="mt-0.5 whitespace-pre-line text-sm">{block.client.notes}</p>
+            </section>
+          )}
+
           {block.notes && (
             <section>
               <h3 className="mb-1 text-xs font-semibold tracking-[0.08em] text-ink-faint uppercase">Napomena</h3>

@@ -23,7 +23,7 @@ export interface CalendarItem {
   firstVisit: boolean;
   source: Source;
   notes: string | null;
-  client: { id: string; name: string; phone: string | null } | null;
+  client: { id: string; name: string; phone: string | null; notes: string | null } | null;
 }
 
 export async function listCalendar(salonId: string, from: Date, to: Date): Promise<CalendarItem[]> {
@@ -51,6 +51,7 @@ export async function listCalendar(salonId: string, from: Date, to: Date): Promi
       clientId: clients.id,
       clientName: clients.name,
       clientPhone: clients.phone,
+      clientNotes: clients.notes,
     })
     .from(appointmentItems)
     .innerJoin(appointments, eq(appointments.id, appointmentItems.appointmentId))
@@ -60,8 +61,8 @@ export async function listCalendar(salonId: string, from: Date, to: Date): Promi
     )
     .orderBy(asc(appointmentItems.startsAt));
 
-  return rows.map(({ clientId, clientName, clientPhone, ...r }) => ({
+  return rows.map(({ clientId, clientName, clientPhone, clientNotes, ...r }) => ({
     ...r,
-    client: clientId ? { id: clientId, name: clientName!, phone: clientPhone } : null,
+    client: clientId ? { id: clientId, name: clientName!, phone: clientPhone, notes: clientNotes } : null,
   }));
 }

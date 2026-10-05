@@ -512,6 +512,16 @@ function SetupChecklist({ hasServices, hasStaff }: { hasServices: boolean; hasSt
       <div className="max-w-xl rounded-[var(--radius-card)] bg-paper p-6 ring-1 ring-line">
         <p className="font-display text-2xl">Pripremimo kalendar</p>
         <p className="mt-1 text-ink-soft">Tri koraka i salon je spreman za prve termine.</p>
+        {(!hasServices || !hasStaff) && (
+          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-[var(--radius-chip)] bg-lacquer-wash/50 p-3 ring-1 ring-lacquer/20">
+            <span className="flex-1 text-sm">
+              <strong>Brzo postavljanje:</strong> odaberite tip salona i dobićete gotov cjenovnik, radnike i radno vrijeme za 5 minuta.
+            </span>
+            <Link href="/app/postavljanje" className="rounded-full bg-lacquer px-4 py-2 text-sm font-medium text-white hover:bg-lacquer-deep">
+              Pokreni
+            </Link>
+          </div>
+        )}
         <ol className="mt-6 space-y-5">
           {steps.map((s, i) => (
             <li key={s.title} className="flex gap-4">

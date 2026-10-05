@@ -1,13 +1,14 @@
 "use client";
 
 import { clsx } from "clsx";
-import { CalendarDays, MessagesSquare, Scissors, Settings2, UsersRound } from "lucide-react";
+import { CalendarDays, Contact, MessagesSquare, Scissors, Settings2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { can, type Permission, type Role } from "@/lib/permissions";
 
 const ALL_ITEMS: { href: string; label: string; icon: typeof CalendarDays; needs?: Permission }[] = [
   { href: "/app/kalendar", label: "Kalendar", icon: CalendarDays },
+  { href: "/app/klijenti", label: "Klijenti", icon: Contact },
   { href: "/app/razgovori", label: "Razgovori", icon: MessagesSquare },
   { href: "/app/usluge", label: "Usluge", icon: Scissors, needs: "manageCatalog" },
   { href: "/app/radnici", label: "Radnici", icon: UsersRound },

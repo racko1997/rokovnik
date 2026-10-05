@@ -61,3 +61,27 @@ export function plural(n: number, one: string, few: string, many: string): strin
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
   return many;
 }
+
+const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+
+/**
+ * Trenutak u vremenskoj zoni salona kao "5. okt" / "5. okt 2025" / "5. okt, 14:30".
+ * Ne koristi bs-BA lokalizaciju (Node je često nema) — isti ispis na serveru i u pregledniku.
+ */
+export function formatInstant(value: string | Date, timeZone: string, opts: { time?: boolean; year?: boolean } = {}): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(typeof value === "string" ? new Date(value) : value)
+      .map((p) => [p.type, p.value]),
+  );
+  const date = `${Number(parts.day)}. ${MONTHS_SHORT[Number(parts.month) - 1]}${opts.year ? ` ${parts.year}` : ""}`;
+  return opts.time ? `${date}, ${parts.hour}:${parts.minute}` : date;
+}

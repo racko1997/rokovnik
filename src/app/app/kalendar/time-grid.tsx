@@ -423,8 +423,8 @@ function Block({
               <Sparkles size={12} />
             </span>
           )}
-          {b.notes && (
-            <span title={b.notes} className="shrink-0 text-ink-faint">
+          {(b.notes || b.client?.notes) && (
+            <span title={[b.client?.notes, b.notes].filter(Boolean).join(" · ")} className={clsx("shrink-0", b.client?.notes ? "text-amber" : "text-ink-faint")}>
               <MessageSquareText size={12} />
             </span>
           )}

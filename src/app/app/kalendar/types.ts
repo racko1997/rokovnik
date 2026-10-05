@@ -43,7 +43,7 @@ export interface CalItem {
   source: Source;
   notes: string | null;
   firstVisit: boolean;
-  client: { id: string; name: string; phone: string | null } | null;
+  client: { id: string; name: string; phone: string | null; notes: string | null } | null;
 }
 
 export interface CalService {
