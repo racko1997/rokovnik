@@ -28,12 +28,17 @@ export function NewAppointmentSheet({
   staff,
   services,
   currency,
+  today,
+  nowMin,
   onClose,
 }: {
   draft: Draft | null;
   staff: CalStaff[];
   services: CalService[];
   currency: string;
+  /** Današnji datum i sat u salonu — za upozorenje o terminu u prošlosti */
+  today: string;
+  nowMin: number;
   onClose: () => void;
 }) {
   const [staffId, setStaffId] = useState(draft?.staffId ?? staff[0]?.id ?? "");
@@ -46,6 +51,7 @@ export function NewAppointmentSheet({
   const [hitState, setHits] = useState<{ q: string; hits: ClientHit[] }>({ q: "", hits: [] });
   const [notes, setNotes] = useState("");
   const [slotState, setSlots] = useState<{ key: string; slots: number[] } | null>(null);
+  const [confirmPast, setConfirmPast] = useState(false);
   const [errorState, setErrorState] = useState<{ key: string; message: string } | null>(null);
   const [pending, start] = useTransition();
 
@@ -108,6 +114,7 @@ export function NewAppointmentSheet({
         staffId,
         date,
         startMin,
+        allowPast: inPast && confirmPast,
         clientId: client?.id,
         client: client ? undefined : { name: clientQuery, phone },
         notes,
@@ -117,7 +124,8 @@ export function NewAppointmentSheet({
     });
   }
 
-  const canSubmit = serviceIds.length > 0 && (client || clientQuery.trim().length >= 2) && !pending;
+  const inPast = date < today || (date === today && startMin < nowMin - 5);
+  const canSubmit = serviceIds.length > 0 && (client || clientQuery.trim().length >= 2) && !pending && (!inPast || confirmPast);
 
   return (
     <Sheet
@@ -290,6 +298,16 @@ export function NewAppointmentSheet({
             </div>
           )}
         </section>
+
+        {inPast && (
+          <label className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-chip)] bg-amber-wash/70 p-3 text-sm ring-1 ring-amber/25">
+            <input type="checkbox" checked={confirmPast} onChange={(e) => setConfirmPast(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--amber)]" />
+            <span>
+              <span className="block font-medium text-amber">Ovo vrijeme je već prošlo</span>
+              <span className="block text-ink-soft">Označite ako naknadno upisujete posjetu koja je već bila (npr. klijent bez najave).</span>
+            </span>
+          </label>
+        )}
 
         <Field label="Napomena (nije obavezno)">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="npr. alergija na amonijak" />

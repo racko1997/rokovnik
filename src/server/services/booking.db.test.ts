@@ -122,4 +122,24 @@ describe("rezervacije", () => {
     const rows = await db.query.appointments.findMany({ where: (t, { inArray }) => inArray(t.id, [a.appointmentId, b.appointmentId]) });
     expect(new Set(rows.map((r) => r.clientId)).size).toBe(1);
   });
+
+  it("recepcija ne upisuje prošli termin bez potvrde, a uz potvrdu da", async () => {
+    const yesterday = new Date(Date.now() - 24 * 3600_000);
+    await expectDomainError(
+      createAppointment(salon, { serviceIds: [haircut], staffId: ana, startsAt: yesterday, client: client(20) }, { mode: "staff" }),
+      "IN_PAST",
+    );
+    const res = await createAppointment(
+      salon,
+      { serviceIds: [haircut], staffId: ana, startsAt: yesterday, client: client(20), allowPast: true },
+      { mode: "staff" },
+    );
+    expect(res.staffId).toBe(ana);
+  });
+
+  it("prijedlozi slobodnih termina za recepciju ne nude prošlo vrijeme", async () => {
+    const today = toLocalDate(new Date(), TZ);
+    const [day] = await getAvailability(salon, { serviceIds: [haircut], from: today }, { mode: "staff" });
+    expect(day.slots.every((s) => new Date(s.start).getTime() >= Date.now() - 60_000)).toBe(true);
+  });
 });

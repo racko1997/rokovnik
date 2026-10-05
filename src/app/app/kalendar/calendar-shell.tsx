@@ -357,6 +357,8 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
         staff={data.staff}
         services={data.services}
         currency={data.currency}
+        today={data.today}
+        nowMin={data.nowMin}
         onClose={() => setDraft(null)}
       />
     </div>

@@ -35,6 +35,8 @@ export const createAppointmentInput = z.object({
     .transform((v) => v || null),
   source: z.enum(appointmentSource.enumValues).default("dashboard"),
   conversationId: z.uuid().optional(),
+  /** Recepcija naknadno upisuje posjetu koja je već bila (npr. klijent bez najave) */
+  allowPast: z.boolean().default(false),
 });
 
 export async function createAppointment(
@@ -57,8 +59,12 @@ export async function createAppointment(
   const start = input.startsAt.getTime();
   const { earliest, lastDate } = bookingWindow(salon, opts.mode, now);
   const date = toLocalDate(input.startsAt, salon.timezone);
-  if (earliest !== undefined && start < earliest) {
+  if (opts.mode === "public" && earliest !== undefined && start < earliest) {
     throw new DomainError("TOO_EARLY", "Taj termin je prekasno za online zakazivanje. Odaberite kasniji.");
+  }
+  // Termin u prošlosti (uz 5 min tolerancije) recepcija upisuje samo uz izričitu potvrdu
+  if (opts.mode === "staff" && start < now.getTime() - 5 * MIN && !input.allowPast) {
+    throw new DomainError("IN_PAST", "Ovaj termin je već prošao. Ako upisujete posjetu naknadno, potvrdite upis u prošlosti.");
   }
   if (lastDate && date > lastDate) {
     throw new DomainError("TOO_FAR", `Termine je moguće zakazati najviše ${salon.maxAdvanceDays} dana unaprijed.`);

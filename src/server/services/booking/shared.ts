@@ -170,7 +170,8 @@ export function allFree(day: StaffDay, intervals: Interval[]) {
 }
 
 export function bookingWindow(salon: Salon, mode: BookingMode, now: Date) {
-  if (mode === "staff") return { earliest: undefined, lastDate: undefined };
+  // Recepcija: bez minimalnog razmaka i ograničenja unaprijed, ali prošlost se ne nudi kao slobodna
+  if (mode === "staff") return { earliest: now.getTime(), lastDate: undefined };
   return {
     earliest: now.getTime() + salon.minLeadMin * MIN,
     lastDate: addDays(toLocalDate(now, salon.timezone), salon.maxAdvanceDays),

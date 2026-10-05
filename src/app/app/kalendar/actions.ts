@@ -15,6 +15,7 @@ const newAppointmentForm = z.object({
   clientId: z.uuid().optional(),
   client: z.object({ name: z.string(), phone: z.string().optional() }).optional(),
   notes: z.string().optional(),
+  allowPast: z.boolean().optional(),
 });
 
 export async function createAppointmentAction(raw: z.input<typeof newAppointmentForm>) {
@@ -31,6 +32,7 @@ export async function createAppointmentAction(raw: z.input<typeof newAppointment
         client: input.clientId ? undefined : input.client,
         notes: input.notes,
         source: "dashboard",
+        allowPast: input.allowPast ?? false,
       },
       { mode: "staff", userId },
     );
