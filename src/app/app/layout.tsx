@@ -1,6 +1,7 @@
 import { BrandMark } from "@/components/brand-mark";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { getMemberships, requireSalon, requireUser } from "@/server/context";
+import { MobileTopBar } from "./account-menu";
 import { AppNav, MobileNav } from "./nav";
 import { SalonSwitcher } from "./salon-switcher";
 import { SignOutButton } from "./sign-out-button";
@@ -39,7 +40,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <div className="min-w-0 pb-20 lg:pb-0">{children}</div>
+      <div className="min-w-0 pb-20 lg:pb-0">
+        <MobileTopBar
+          salonName={salon.name}
+          salonSlug={salon.slug}
+          userName={user.name}
+          userEmail={user.email}
+          roleLabel={ROLE_LABEL[role]}
+          currentSalonId={salon.id}
+          salons={memberships.map((m) => ({ id: m.salon.id, name: m.salon.name }))}
+        />
+        {children}
+      </div>
       <MobileNav role={role} />
     </div>
   );

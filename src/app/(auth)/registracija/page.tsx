@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getSession } from "@/server/context";
+import { SignedInNotice } from "../signed-in-notice";
 import { SignUpForm } from "./sign-up-form";
 
 export const metadata: Metadata = { title: "Otvorite salon" };
 
 export default async function SignUpPage() {
-  if (await getSession()) redirect("/app");
+  const session = await getSession();
+  if (session) return <SignedInNotice name={session.user.name} email={session.user.email} intent="signup" />;
   return (
     <>
       <h1 className="font-display text-4xl leading-tight">Otvorite svoj salon</h1>

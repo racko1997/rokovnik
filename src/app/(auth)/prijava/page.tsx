@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getSession } from "@/server/context";
+import { SignedInNotice } from "../signed-in-notice";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Prijava" };
 
 export default async function SignInPage() {
-  if (await getSession()) redirect("/app");
+  const session = await getSession();
+  if (session) return <SignedInNotice name={session.user.name} email={session.user.email} intent="login" />;
   return (
     <>
       <h1 className="font-display text-4xl leading-tight">Dobro došli nazad</h1>

@@ -170,7 +170,7 @@ export function CalendarShell({ data, viewExplicit }: { data: CalendarData; view
     });
 
   return (
-    <div className="flex flex-col md:h-[calc(100dvh-4.25rem)] lg:h-dvh">
+    <div className="flex flex-col md:h-[calc(100dvh-7.75rem)] lg:h-dvh">
       <header className="shrink-0 space-y-3 px-4 pt-5 pb-3 sm:px-8 sm:pt-7">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">

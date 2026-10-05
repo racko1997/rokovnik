@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { HeroScene } from "@/components/landing/hero-scene";
+import { LandingAuthLinks } from "@/components/landing/landing-auth-links";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { AgentVisual, BookingVisual, ShiftsVisual } from "@/components/landing/visuals";
@@ -89,12 +90,7 @@ export default function Home() {
             <a href="#pilot" className="hidden rounded-full px-3 py-2 text-sm font-medium text-lacquer hover:text-lacquer-deep md:block">
               Pilot program
             </a>
-            <ButtonLink href="/prijava" variant="ghost" size="sm">
-              Prijava
-            </ButtonLink>
-            <ButtonLink href="/registracija" size="sm">
-              Otvori salon
-            </ButtonLink>
+            <LandingAuthLinks />
           </nav>
         </div>
       </header>

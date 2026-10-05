@@ -38,7 +38,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
   };
 
   return (
-    <div className="flex h-[calc(100dvh-4.25rem)] flex-col lg:h-dvh">
+    <div className="flex h-[calc(100dvh-7.75rem)] flex-col lg:h-dvh">
       <PageHeader
         title="Razgovori"
         description="Šta je recepcioner odgovarao klijentima — svaka poruka i svaki korak koji je napravio."
