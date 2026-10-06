@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,11 @@ export function SignInForm({ next = "/app" }: { next?: string }) {
       <Field label="Lozinka">
         <Input name="password" type="password" autoComplete="current-password" required />
       </Field>
+      <p className="-mt-2 text-right text-sm">
+        <Link href="/zaboravljena-lozinka" className="text-ink-soft underline-offset-4 hover:text-lacquer hover:underline">
+          Zaboravili ste lozinku?
+        </Link>
+      </p>
       <FormError message={error} />
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? "Prijavljujem…" : "Prijavi se"}

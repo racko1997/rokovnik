@@ -25,6 +25,8 @@ export function SignUpForm() {
       name: String(form.get("name")),
       email: String(form.get("email")),
       password,
+      // Kamo vodi link iz maila za potvrdu adrese
+      callbackURL: "/app?email=potvrden",
     });
     if (error) {
       setPending(false);

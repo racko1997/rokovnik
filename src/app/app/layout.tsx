@@ -1,10 +1,12 @@
 import { BrandMark } from "@/components/brand-mark";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { getMemberships, requireSalon, requireUser } from "@/server/context";
+import { canEmailAnyone } from "@/server/notify";
 import { MobileTopBar } from "./account-menu";
 import { AppNav, MobileNav } from "./nav";
 import { SalonSwitcher } from "./salon-switcher";
 import { SignOutButton } from "./sign-out-button";
+import { VerifyEmailBanner } from "./verify-email-banner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { salon, role } = await requireSalon();
@@ -50,6 +52,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           currentSalonId={salon.id}
           salons={memberships.map((m) => ({ id: m.salon.id, name: m.salon.name }))}
         />
+        {/* Dok slanje mailova nije uključeno (nema domena), nema smisla tražiti potvrdu */}
+        {canEmailAnyone() && !user.emailVerified && <VerifyEmailBanner email={user.email} />}
         {children}
       </div>
       <MobileNav role={role} />
