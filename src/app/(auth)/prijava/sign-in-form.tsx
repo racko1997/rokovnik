@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FormError, Input } from "@/components/ui/field";
 import { authClient } from "@/lib/auth-client";
 
-export function SignInForm() {
+export function SignInForm({ next = "/app" }: { next?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -25,7 +25,7 @@ export function SignInForm() {
       setError(error.status === 401 ? "Pogrešan email ili lozinka." : "Prijava nije uspjela. Pokušajte ponovo.");
       return;
     }
-    router.push("/app");
+    router.push(next);
     router.refresh();
   }
 

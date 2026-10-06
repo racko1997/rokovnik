@@ -33,6 +33,7 @@ export async function sendEmail(msg: { to: string[]; subject: string; text: stri
 export function adminEmails(): string[] {
   return (process.env.ADMIN_EMAILS ?? "")
     .split(",")
-    .map((e) => e.trim())
+    // Vercel polje ponekad dobije navodnike ili razmake — sve to ignorišemo
+    .map((e) => e.trim().replace(/^["']|["']$/g, "").trim())
     .filter(Boolean);
 }

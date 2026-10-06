@@ -6,7 +6,17 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 /** Na prijavi/registraciji kad je korisnik već prijavljen — umjesto tihog preusmjeravanja. */
-export function SignedInNotice({ name, email, intent }: { name: string; email: string; intent: "login" | "signup" }) {
+export function SignedInNotice({
+  name,
+  email,
+  intent,
+  next = "/app",
+}: {
+  name: string;
+  email: string;
+  intent: "login" | "signup";
+  next?: string;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   return (
@@ -16,7 +26,7 @@ export function SignedInNotice({ name, email, intent }: { name: string; email: s
         Kao <strong className="text-ink">{name}</strong> ({email}).
       </p>
       <div className="mt-8 space-y-3">
-        <ButtonLink href="/app" size="lg" className="w-full">
+        <ButtonLink href={next} size="lg" className="w-full">
           Nastavi kao {name.split(" ")[0]}
         </ButtonLink>
         <Button

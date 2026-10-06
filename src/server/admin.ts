@@ -1,13 +1,23 @@
 import "server-only";
-import { notFound } from "next/navigation";
-import { requireUser } from "./context";
+import { notFound, redirect } from "next/navigation";
+import { getSession } from "./context";
 import { adminEmails } from "./notify";
 
-/** Vlasnici platforme (ne salona): emailovi iz ADMIN_EMAILS, odvojeni zarezom. */
-export async function requirePlatformAdmin() {
-  const user = await requireUser();
+/**
+ * Pristup administraciji platforme (vlasnici platforme, ne salona): emailovi iz ADMIN_EMAILS.
+ * Stranica prijavljenom korisniku bez pristupa kaže kojim je nalogom ušao, umjesto tihog 404.
+ */
+export async function platformAdminAccess() {
+  const session = await getSession();
+  if (!session) redirect("/prijava?next=/admin/prijave");
+  const user = session.user;
   const admins = adminEmails().map((e) => e.toLowerCase());
-  // Za sve ostale stranica "ne postoji"
-  if (!admins.includes(user.email.toLowerCase())) notFound();
-  return user;
+  return { user, ok: admins.includes(user.email.toLowerCase()), configured: admins.length > 0 };
+}
+
+/** Za akcije: bez pristupa akcija "ne postoji". */
+export async function requirePlatformAdmin() {
+  const access = await platformAdminAccess();
+  if (!access.ok) notFound();
+  return access.user;
 }

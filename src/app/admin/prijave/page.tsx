@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import { BrandMark } from "@/components/brand-mark";
 import { formatInstant } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
-import { requirePlatformAdmin } from "@/server/admin";
+import { platformAdminAccess } from "@/server/admin";
 import { listLeads } from "@/server/services/leads";
 import { LeadStatus } from "./lead-status";
+import { NoAdminAccess } from "./no-access";
 
 export const metadata: Metadata = { title: "Prijave za pilot", robots: { index: false } };
 
 export default async function LeadsPage() {
-  await requirePlatformAdmin();
+  const access = await platformAdminAccess();
+  if (!access.ok) return <NoAdminAccess email={access.user.email} configured={access.configured} />;
   const leads = await listLeads();
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
