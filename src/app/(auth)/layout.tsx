@@ -2,9 +2,9 @@ import { BrandMark } from "@/components/brand-mark";
 import { swatch } from "@/lib/swatches";
 
 const PREVIEW = [
-  { time: "09:00", name: "Merima K.", service: "Žensko šišanje", color: "rubin", h: 3 },
+  { time: "09:00", name: "Milica K.", service: "Žensko šišanje", color: "rubin", h: 3 },
   { time: "09:45", name: "Haris S.", service: "Muško šišanje", color: "plavocrna", h: 2 },
-  { time: "10:15", name: "Lejla H.", service: "Gel lak", color: "kadulja", h: 4 },
+  { time: "10:15", name: "Ivana H.", service: "Gel lak", color: "kadulja", h: 4 },
   { time: "11:15", name: "Jasmina B.", service: "Farbanje izrastka", color: "ljubicasta", h: 5 },
 ];
 

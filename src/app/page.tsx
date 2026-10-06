@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { HeroScene } from "@/components/landing/hero-scene";
 import { LandingAuthLinks } from "@/components/landing/landing-auth-links";
+import { LandingMobileMenu } from "@/components/landing/landing-mobile-menu";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { AgentVisual, BookingVisual, ShiftsVisual } from "@/components/landing/visuals";
@@ -35,12 +36,12 @@ const PAINS = [
 ];
 
 const CHANNELS = [
-  { name: "Web chat na stranici salona", status: "Radi" },
-  { name: "Online zakazivanje preko linka", status: "Radi" },
-  { name: "Instagram i Facebook poruke", status: "Uskoro" },
+  { name: "Web chat na stranici", status: "Radi" },
+  { name: "Online zakazivanje", status: "Radi" },
+  { name: "Instagram i Messenger", status: "Uskoro" },
   { name: "WhatsApp", status: "Uskoro" },
   { name: "Viber", status: "Uskoro" },
-  { name: "Telefonski poziv (glasovni recepcioner)", status: "U razvoju" },
+  { name: "Telefonski pozivi", status: "U izradi" },
 ];
 
 const FAQ = [
@@ -77,7 +78,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b border-transparent bg-porcelain/85 backdrop-blur supports-[backdrop-filter]:bg-porcelain/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <BrandMark />
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1.5">
             <a href="#mogucnosti" className="hidden rounded-full px-3 py-2 text-sm text-ink-soft hover:text-ink md:block">
               Mogućnosti
             </a>
@@ -91,6 +92,7 @@ export default function Home() {
               Pilot program
             </a>
             <LandingAuthLinks />
+            <LandingMobileMenu />
           </nav>
         </div>
       </header>
@@ -99,10 +101,7 @@ export default function Home() {
         {/* Uvod */}
         <section className="mx-auto grid max-w-6xl items-center gap-16 px-4 pt-12 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pt-20">
           <div data-reveal="up">
-            <p className="inline-flex items-center gap-2 rounded-full bg-paper px-3 py-1 text-sm text-ink-soft ring-1 ring-line">
-              <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Za frizerske i kozmetičke salone u BiH
-            </p>
-            <h1 className="mt-5 font-display text-[2.75rem] leading-[1.02] tracking-[-0.015em] sm:text-6xl lg:text-[4.25rem]">
+            <h1 className="font-display text-[2.75rem] leading-[1.02] tracking-[-0.015em] sm:text-6xl lg:text-[4.25rem]">
               Ruke su vam
               <br />u tuđoj kosi.
               <br />
@@ -112,16 +111,16 @@ export default function Home() {
               Kalendar za cijeli salon, online zakazivanje preko linka i AI recepcioner koji klijentima odgovara na poruke — tačno,
               po vašem cjenovniku i stvarnim slobodnim terminima.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/registracija" size="lg">
+            <div className="mt-8 grid gap-3 sm:inline-grid sm:grid-cols-2">
+              <ButtonLink href="/registracija" size="lg" className="w-full">
                 Postavi salon za 5 minuta
               </ButtonLink>
-              <ButtonLink href="/s/studio-lana" size="lg" variant="secondary">
+              <ButtonLink href="/s/studio-lana" size="lg" variant="secondary" className="w-full">
                 Probaj kao klijent
               </ButtonLink>
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
-              {["Bez instalacije", "Postavljanje za 15 minuta", "AI piše bosanski, hrvatski i srpski"].map((t) => (
+              {["Bez instalacije", "Bez ugovora i kartice", "Radi i na telefonu"].map((t) => (
                 <li key={t} className="flex items-center gap-1.5">
                   <Check size={15} className="text-mint" strokeWidth={2.5} /> {t}
                 </li>
@@ -222,19 +221,19 @@ export default function Home() {
             <ul data-reveal="scale" className="reveal-delay-1 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-paper ring-1 ring-line">
               {CHANNELS.map((c) => (
                 <li key={c.name} className="flex items-center justify-between gap-4 px-5 py-4">
-                  <span className="flex items-center gap-3 font-medium">
+                  <span className="flex min-w-0 items-center gap-3 font-medium">
                     {c.name.startsWith("Telefonski") ? (
-                      <Phone size={17} className="text-ink-soft" />
+                      <Phone size={17} className="shrink-0 text-ink-soft" />
                     ) : (
-                      <MessageCircle size={17} className="text-ink-soft" />
+                      <MessageCircle size={17} className="shrink-0 text-ink-soft" />
                     )}
                     {c.name}
                   </span>
                   <span
                     className={
                       c.status === "Radi"
-                        ? "rounded-full bg-mint-wash px-2.5 py-0.5 text-xs font-semibold text-mint"
-                        : "rounded-full bg-porcelain px-2.5 py-0.5 text-xs font-medium text-ink-soft ring-1 ring-line"
+                        ? "shrink-0 rounded-full bg-mint-wash px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-mint"
+                        : "shrink-0 rounded-full bg-porcelain px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-ink-soft ring-1 ring-line"
                     }
                   >
                     {c.status}
@@ -320,24 +319,38 @@ export default function Home() {
         <section className="bg-ink text-porcelain">
           <div data-reveal="up" className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">Manje telefoniranja. Više vremena za klijenta u stolici.</h2>
-            <div className="flex flex-wrap gap-3">
-              <ButtonLink href="/registracija" size="lg">
+            <div className="grid w-full shrink-0 gap-3 sm:w-auto sm:grid-cols-2">
+              <ButtonLink href="/registracija" size="lg" className="w-full">
                 Postavi salon za 5 minuta
               </ButtonLink>
               <Link
                 href="/s/studio-lana"
-                className="inline-flex h-12 items-center rounded-full px-6 text-porcelain/80 ring-1 ring-white/25 hover:text-white hover:ring-white/50"
+                className="inline-flex h-12 w-full items-center justify-center rounded-full px-6 font-medium text-porcelain/85 ring-1 ring-white/25 transition-colors hover:text-white hover:ring-white/50"
               >
-                Pogledaj primjer
+                Probaj kao klijent
               </Link>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-ink-soft sm:px-6">
+      <footer className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 text-sm text-ink-soft sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <BrandMark />
-        <span>Napravljeno u Bosni i Hercegovini</span>
+        <nav className="flex flex-wrap gap-x-6 gap-y-2">
+          <a href="#mogucnosti" className="hover:text-ink">
+            Mogućnosti
+          </a>
+          <a href="#pilot" className="hover:text-ink">
+            Pilot program
+          </a>
+          <a href="#pitanja" className="hover:text-ink">
+            Pitanja
+          </a>
+          <Link href="/prijava" className="hover:text-ink">
+            Prijava
+          </Link>
+        </nav>
+        <span className="text-ink-faint">© {new Date().getFullYear()} {APP_NAME}</span>
       </footer>
     </div>
   );

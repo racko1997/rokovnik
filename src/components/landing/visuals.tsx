@@ -58,7 +58,7 @@ export function ShiftsVisual() {
         </p>
         <div className="mt-3 space-y-2.5 text-sm">
           <div>
-            <p className="tabular font-medium">13:30–14:45 · Nermina D.</p>
+            <p className="tabular font-medium">13:30–14:45 · Ivana D.</p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               <span className="flex items-center gap-1.5 rounded-full bg-mint-wash py-1 pr-3 pl-1.5 text-xs font-medium text-mint ring-1 ring-mint/20">
                 <Swatch color="rubin" size="sm" /> <ArrowRight size={12} /> Lana
@@ -90,20 +90,20 @@ export function BookingVisual() {
   return (
     <div
       aria-hidden
-      className="booking-phone mx-auto flex min-h-[28.5rem] w-[17.5rem] rounded-[2.25rem] bg-ink p-2.5 shadow-[var(--shadow-pop)]"
+      className="booking-phone mx-auto flex min-h-[35rem] w-full max-w-[20rem] rounded-[2.75rem] bg-ink p-3 shadow-[var(--shadow-pop)] sm:max-w-[22rem]"
     >
-      <div className="flex min-h-full flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-porcelain">
-        <div className="bg-paper px-4 pt-7 pb-5">
-          <p className="text-[0.6875rem] text-ink-soft">Sarajevo · Ferhadija 12</p>
-          <p className="font-display text-xl leading-tight">Studio Lana</p>
+      <div className="flex min-h-full flex-1 flex-col overflow-hidden rounded-[2.1rem] bg-porcelain">
+        <div className="bg-paper px-5 pt-9 pb-5">
+          <p className="text-xs text-ink-soft">Banja Luka · Gospodska 12</p>
+          <p className="mt-0.5 font-display text-2xl leading-tight">Studio Lana</p>
         </div>
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-1 flex-col gap-3.5 p-4">
           <div className="rounded-xl bg-paper p-3.5 ring-1 ring-line">
-            <p className="flex items-center justify-between text-xs">
+            <p className="flex items-center justify-between text-sm">
               <span className="font-medium">Muško šišanje · 30 min</span>
               <span className="tabular font-semibold">15 KM</span>
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-ink-soft">
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
               <Swatch color="plavocrna" size="sm" /> kod: Dino
             </p>
           </div>
@@ -112,21 +112,21 @@ export function BookingVisual() {
               {days.map(([d, n, free], i) => (
                 <span
                   key={d}
-                  className={`flex flex-1 flex-col items-center rounded-lg py-1.5 text-[0.5625rem] font-medium ${
+                  className={`flex flex-1 flex-col items-center rounded-lg py-2 text-[0.625rem] font-medium ${
                     i === 1 ? "bg-ink text-porcelain" : free ? "ring-1 ring-line-strong" : "text-ink-faint"
                   }`}
                 >
                   {d}
-                  <span className="font-display text-sm leading-tight">{n}</span>
+                  <span className="font-display text-base leading-tight">{n}</span>
                   <span className={`mt-0.5 h-1 w-1 rounded-full ${free ? (i === 1 ? "bg-porcelain" : "bg-mint") : ""}`} />
                 </span>
               ))}
             </div>
-            <div className="mt-3 grid grid-cols-4 gap-1">
+            <div className="mt-3.5 grid grid-cols-4 gap-1.5">
               {slots.map((s) => (
                 <span
                   key={s}
-                  className={`tabular rounded-md py-1.5 text-center text-[0.6875rem] font-medium ${
+                  className={`tabular rounded-lg py-2 text-center text-xs font-medium ${
                     s === "13:15" ? "bg-lacquer text-white" : "ring-1 ring-line-strong"
                   }`}
                 >
@@ -135,7 +135,14 @@ export function BookingVisual() {
               ))}
             </div>
           </div>
-          <span className="mt-auto block rounded-full bg-lacquer py-3 text-center text-xs font-medium text-white">Potvrdi termin</span>
+          <div className="rounded-xl bg-paper p-3.5 ring-1 ring-line">
+            <p className="text-xs font-medium text-ink-soft">Vaši podaci</p>
+            <div className="mt-2 space-y-1.5 text-sm">
+              <span className="block rounded-lg px-3 py-2 ring-1 ring-line-strong">Jelena Petrović</span>
+              <span className="tabular block rounded-lg px-3 py-2 ring-1 ring-line-strong">065 777 123</span>
+            </div>
+          </div>
+          <span className="mt-auto block rounded-full bg-lacquer py-3.5 text-center text-sm font-medium text-white">Potvrdi termin · 13:15</span>
         </div>
       </div>
     </div>
@@ -144,7 +151,7 @@ export function BookingVisual() {
 
 /** Razgovor s AI recepcionerom i koraci koje je napravio. */
 export function AgentVisual() {
-  const selma = swatch("kadulja").hex;
+  const ana = swatch("kadulja").hex;
   return (
     <div aria-hidden className={`${card} p-4 sm:p-5`}>
       <div className="space-y-2.5 text-sm leading-snug">
@@ -153,18 +160,18 @@ export function AgentVisual() {
           <Search size={11} /> Provjerio slobodne termine · utorak
         </p>
         <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-ink px-3 py-2 text-porcelain">
-          Ujutro je sve zauzeto, ali kod Selme ima u 13:25 ili 13:45. Odgovara li?
+          Ujutro je sve zauzeto, ali kod Ane ima u 13:25 ili 13:45. Odgovara li?
         </p>
-        <p className="w-fit max-w-[85%] rounded-2xl rounded-bl-md bg-porcelain px-3 py-2">Može 13:25. Lejla, 061 777 123</p>
+        <p className="w-fit max-w-[85%] rounded-2xl rounded-bl-md bg-porcelain px-3 py-2">Može 13:25. Jelena, 065 777 123</p>
         <p className="mx-auto flex w-fit items-center gap-1.5 rounded-full bg-mint-wash px-2.5 py-1 text-[0.6875rem] font-medium text-mint">
-          <Check size={11} strokeWidth={3} /> Upisao termin · utorak 13:25 kod Selme
+          <Check size={11} strokeWidth={3} /> Upisao termin · utorak 13:25 kod Ane
         </p>
         <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-ink px-3 py-2 text-porcelain">
-          Upisano! Vidimo se u utorak u 13:25 kod Selme.
+          Upisano! Vidimo se u utorak u 13:25 kod Ane.
         </p>
       </div>
       <div className="mt-4 flex items-center gap-2 border-t border-line pt-3 text-xs text-ink-soft">
-        <span className="h-2 w-2 rounded-full" style={{ background: selma }} />
+        <span className="h-2 w-2 rounded-full" style={{ background: ana }} />
         Termin se odmah vidi u kalendaru salona, označen kao „AI chat“.
       </div>
     </div>

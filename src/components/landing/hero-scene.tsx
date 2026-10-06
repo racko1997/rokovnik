@@ -8,9 +8,9 @@ import { swatch } from "@/lib/swatches";
  * bez JavaScripta; uz "reduced motion" sve je odmah vidljivo.
  */
 const COLS = [
-  { name: "Lana", color: "rubin", blocks: [{ top: 0, h: 2, who: "Merima K.", what: "Žensko šišanje" }, { top: 3, h: 3, who: "Jasmina B.", what: "Izrastak" }] },
-  { name: "Dino", color: "plavocrna", blocks: [{ top: 0, h: 1, who: "Haris S.", what: "Muško šišanje" }, { top: 2, h: 2, who: "Adnan I.", what: "Šišanje + brada" }, { top: 5, h: 1, who: "Emir H.", what: "Brada" }] },
-  { name: "Amra", color: "ljubicasta", blocks: [{ top: 0, h: 2, who: "Nermina D.", what: "Šišanje + feniranje" }] },
+  { name: "Lana", color: "rubin", blocks: [{ top: 0, h: 2, who: "Milica K.", what: "Žensko šišanje" }, { top: 3, h: 3, who: "Jasmina B.", what: "Izrastak" }] },
+  { name: "Dino", color: "plavocrna", blocks: [{ top: 0, h: 1, who: "Nikola S.", what: "Muško šišanje" }, { top: 2, h: 2, who: "Haris I.", what: "Šišanje + brada" }, { top: 5, h: 1, who: "Marko B.", what: "Brada" }] },
+  { name: "Amra", color: "ljubicasta", blocks: [{ top: 0, h: 2, who: "Ivana D.", what: "Šišanje + feniranje" }] },
 ];
 const ROW = 30;
 
