@@ -89,7 +89,8 @@ describe("rezervacije", () => {
     const results = await Promise.allSettled([attempt(4), attempt(5), attempt(6)]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     for (const r of results.filter((r) => r.status === "rejected")) {
-      expect((r as PromiseRejectedResult).reason.code).toBe("SLOT_TAKEN");
+      const reason = (r as PromiseRejectedResult).reason;
+      expect(reason.code, String(reason?.cause ?? reason)).toBe("SLOT_TAKEN");
     }
   });
 

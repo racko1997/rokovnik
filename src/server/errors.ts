@@ -27,8 +27,11 @@ export type DomainErrorCode =
   | "IN_PAST";
 
 /** Postgres kodovi koje prevodimo u domenske greške. */
+// Kad više rezervacija za isti termin stigne istovremeno, Postgres provjeru preklapanja
+// ponekad razriješi deadlockom (40P01) umjesto 23P01 — za nas je to isto: termin je zauzet.
 export function isExclusionViolation(err: unknown): boolean {
-  return pgCode(err) === "23P01";
+  const code = pgCode(err);
+  return code === "23P01" || code === "40P01";
 }
 
 export function isUniqueViolation(err: unknown, constraint?: string): boolean {
