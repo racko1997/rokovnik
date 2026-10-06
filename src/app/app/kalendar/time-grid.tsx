@@ -395,7 +395,7 @@ function Block({
     multi
       ? b.parts
           .filter((p) => p.endMin > from && p.startMin < to)
-          .map((p, i) => {
+          .map((p) => {
             const t = partTone!(p.serviceId);
             const top = (Math.max(p.startMin, from) - from) * px;
             const height = (Math.min(p.endMin, to) - Math.max(p.startMin, from)) * px;
@@ -406,7 +406,7 @@ function Block({
                 className="pointer-events-none absolute inset-x-0 overflow-hidden"
                 style={{ top, height, background: t.fill, boxShadow: `inset 3px 0 0 ${t.accent}` }}
               >
-                {(labelFirst || i > 0) && height >= 18 && (
+                {labelFirst && height >= 18 && (
                   <span className="absolute top-0.5 left-2.5 truncate text-[0.6875rem] font-medium" style={{ color: t.accent }}>
                     {p.continuation ? `↳ ${p.name}` : p.name}
                   </span>
@@ -466,8 +466,7 @@ function Block({
         </span>
         {!compact && (
           <>
-            {!multi && <span className="truncate text-[0.8125rem] leading-snug text-ink-soft">{b.services.map((s) => s.name).join(" + ")}</span>}
-            {multi && <span className="relative truncate text-[0.8125rem] leading-snug text-ink-soft">{b.parts[0].name}</span>}
+            <span className="relative truncate text-[0.8125rem] leading-snug text-ink-soft">{b.services.map((s) => s.name).join(" + ")}</span>
             <span className="tabular relative mt-auto flex flex-wrap items-center gap-1.5 pt-0.5 text-[0.75rem] text-ink-soft">
               {formatClock(startMin)}–{formatClock(endMin)}
               {b.status === "confirmed" && <span className="font-semibold text-mint">✓</span>}
