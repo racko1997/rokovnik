@@ -349,6 +349,12 @@ export default function Home() {
           <Link href="/prijava" className="hover:text-ink">
             Prijava
           </Link>
+          <Link href="/privatnost" className="hover:text-ink">
+            Privatnost
+          </Link>
+          <Link href="/uslovi" className="hover:text-ink">
+            Uslovi
+          </Link>
         </nav>
         <span className="text-ink-faint">© {new Date().getFullYear()} {APP_NAME}</span>
       </footer>

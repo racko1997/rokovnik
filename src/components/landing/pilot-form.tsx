@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { submitPilotLeadAction } from "@/app/pilot-actions";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -94,6 +95,12 @@ export function PilotForm() {
       <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Šaljem…" : "Prijavi salon"}
       </Button>
+      <p className="text-xs leading-relaxed text-ink-faint">
+        Podatke koristimo samo da vam se javimo.{" "}
+        <Link href="/privatnost" className="underline underline-offset-2 hover:text-ink">
+          Politika privatnosti
+        </Link>
+      </p>
     </form>
   );
 }

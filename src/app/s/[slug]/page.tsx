@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { APP_NAME } from "@/lib/brand";
 import { formatPhone } from "@/lib/phone";
@@ -68,8 +69,14 @@ export default async function PublicSalonPage({ params }: Props) {
         />
       </main>
 
-      <footer className="mx-auto max-w-5xl px-4 pb-10 text-sm text-ink-faint sm:px-6">
-        Zakazivanje: {APP_NAME}
+      <footer className="mx-auto flex max-w-5xl flex-wrap gap-x-5 gap-y-1 px-4 pb-10 text-sm text-ink-faint sm:px-6">
+        <span>Zakazivanje: {APP_NAME}</span>
+        <Link href="/privatnost" className="hover:text-ink">
+          Privatnost
+        </Link>
+        <Link href="/uslovi" className="hover:text-ink">
+          Uslovi
+        </Link>
       </footer>
 
       {/* AI recepcioner — prikazuje se samo kad je OpenAI ključ podešen */}

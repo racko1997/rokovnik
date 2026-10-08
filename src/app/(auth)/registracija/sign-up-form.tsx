@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,17 @@ export function SignUpForm() {
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? "Otvaram nalog…" : "Otvori nalog"}
       </Button>
+      <p className="text-center text-xs leading-relaxed text-ink-faint">
+        Otvaranjem naloga prihvatate{" "}
+        <Link href="/uslovi" className="underline underline-offset-2 hover:text-ink">
+          Uslove korištenja
+        </Link>{" "}
+        i{" "}
+        <Link href="/privatnost" className="underline underline-offset-2 hover:text-ink">
+          Politiku privatnosti
+        </Link>
+        .
+      </p>
     </form>
   );
 }
