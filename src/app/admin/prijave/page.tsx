@@ -4,6 +4,7 @@ import { formatInstant } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { platformAdminAccess } from "@/server/admin";
 import { listLeads } from "@/server/services/leads";
+import { DemoReset } from "./demo-reset";
 import { LeadStatus } from "./lead-status";
 import { NoAdminAccess } from "./no-access";
 
@@ -17,7 +18,10 @@ export default async function LeadsPage() {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <BrandMark href="/" />
       <h1 className="mt-8 font-display text-4xl">Prijave za pilot</h1>
-      <p className="mt-1 text-ink-soft">{leads.length} prijava sa naslovne stranice.</p>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-ink-soft">{leads.length} prijava sa naslovne stranice.</p>
+        <DemoReset />
+      </div>
       {leads.length === 0 ? (
         <p className="mt-8 rounded-[var(--radius-card)] border border-dashed border-line-strong px-6 py-10 text-center text-ink-soft">Još nema prijava.</p>
       ) : (
