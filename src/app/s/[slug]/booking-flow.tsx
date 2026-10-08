@@ -29,9 +29,9 @@ interface StaffLite {
 }
 
 type Step = "services" | "staff" | "time" | "details" | "done";
-type Day = { date: string; slots: { startMin: number; staffIds: string[] }[] };
+export type Day = { date: string; slots: { startMin: number; staffIds: string[] }[] };
 
-const WINDOW = 14;
+export const WINDOW = 14;
 
 function addDays(date: string, n: number) {
   const [y, m, d] = date.split("-").map(Number);
@@ -44,12 +44,15 @@ export function BookingFlow({
   currency,
   services,
   staff,
+  emailEnabled,
 }: {
   slug: string;
   today: string;
   currency: string;
   services: Service[];
   staff: StaffLite[];
+  /** Šalje li se potvrda mailom (tek s vlastitim domenom) — inače polje za email ne nudimo */
+  emailEnabled: boolean;
 }) {
   const [step, setStep] = useState<Step>("services");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
@@ -60,6 +63,7 @@ export function BookingFlow({
   const [startMin, setStartMin] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bookedStaff, setBookedStaff] = useState<string | null>(null);
+  const [manageHref, setManageHref] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const chosen = serviceIds.map((id) => services.find((s) => s.id === id)!).filter(Boolean);
@@ -120,6 +124,7 @@ export function BookingFlow({
         startMin,
         name: String(f.get("name")),
         phone: String(f.get("phone")),
+        email: String(f.get("email") ?? ""),
         notes: String(f.get("notes") ?? ""),
         website: String(f.get("website") ?? ""),
       });
@@ -132,6 +137,7 @@ export function BookingFlow({
         return;
       }
       setBookedStaff(res.data.staffId);
+      setManageHref(res.data.managePath);
       setStep("done");
     });
   }
@@ -159,7 +165,14 @@ export function BookingFlow({
           <Row label="Trajanje" value={formatDuration(duration)} />
           <Row label="Cijena" value={formatPrice(price, currency, priceFrom)} />
         </dl>
-        <p className="mt-6 text-sm text-ink-soft">Ako ne možete doći, javite salonu na vrijeme.</p>
+        {manageHref && (
+          <div className="mt-6 rounded-[var(--radius-chip)] bg-porcelain px-4 py-3 text-left text-sm">
+            <p className="text-ink-soft">Ne možete doći? Otkažite ili pomjerite termin sami — sačuvajte ovaj link:</p>
+            <a href={manageHref} className="mt-1 inline-block font-medium text-lacquer underline-offset-4 hover:underline">
+              Otkaži ili pomjeri termin →
+            </a>
+          </div>
+        )}
       </div>
     );
   }
@@ -307,6 +320,11 @@ export function BookingFlow({
                 <Input name="phone" type="tel" autoComplete="tel" required placeholder="061 234 567" />
               </Field>
             </div>
+            {emailEnabled && (
+              <Field label="Email (nije obavezno)" hint="Stiže vam potvrda i link za otkazivanje ili pomjeranje.">
+                <Input name="email" type="email" autoComplete="email" />
+              </Field>
+            )}
             <Field label="Napomena (nije obavezno)">
               <Textarea name="notes" rows={2} placeholder="npr. dužina kose, posebne želje" />
             </Field>
@@ -444,7 +462,7 @@ function StaffOption({
   );
 }
 
-function TimePicker({
+export function TimePicker({
   today,
   from,
   onFrom,

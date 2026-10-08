@@ -7,7 +7,8 @@ import { db } from "../db/client";
 import { salons } from "../db/schema";
 import { addDays, isoWeekday, toLocalDate, zonedToUtc } from "../domain/time";
 import { DomainError } from "../errors";
-import { createAppointment, getAvailability, setAppointmentStatus } from "./booking";
+import { manageToken, verifyManageToken } from "../manage-link";
+import { cancelManaged, createAppointment, getAvailability, getManagedAppointment, rescheduleManaged, setAppointmentStatus } from "./booking";
 import { saveService } from "./catalog";
 import type { Salon } from "./salons";
 import { saveStaff } from "./staff";
@@ -142,5 +143,43 @@ describe("rezervacije", () => {
     const today = toLocalDate(new Date(), TZ);
     const [day] = await getAvailability(salon, { serviceIds: [haircut], from: today }, { mode: "staff" });
     expect(day.slots.every((s) => new Date(s.start).getTime() >= Date.now() - 60_000)).toBe(true);
+  });
+});
+
+describe("link za upravljanje terminom", () => {
+  // Sedmicu kasnije, da se ne sudara s terminima iz ostalih testova
+  const week2 = addDays(monday, 7);
+  const at2 = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return zonedToUtc(week2, h * 60 + m, TZ);
+  };
+
+  it("potpis štiti link: tuđi ili izmijenjen token ne vrijedi", () => {
+    const id = crypto.randomUUID();
+    expect(verifyManageToken(manageToken(id))).toBe(id);
+    expect(verifyManageToken(`${crypto.randomUUID()}.${manageToken(id).split(".")[1]}`)).toBeNull();
+    expect(verifyManageToken(`${id}.pogresno`)).toBeNull();
+  });
+
+  it("klijent pomjera i otkazuje termin preko linka", async () => {
+    const res = await createAppointment(salon, { serviceIds: [haircut], staffId: edin, startsAt: at2("11:00"), client: client(30) }, { mode: "public" });
+    expect((await getManagedAppointment(res.appointmentId))!.canChange).toBe(true);
+
+    await rescheduleManaged(res.appointmentId, { date: week2, startMin: 10 * 60 + 30 });
+    const moved = await getManagedAppointment(res.appointmentId);
+    expect(moved!.startsAt.toISOString()).toBe(at2("10:30").toISOString());
+
+    await cancelManaged(res.appointmentId);
+    const after = await getManagedAppointment(res.appointmentId);
+    expect(after!.status).toBe("cancelled");
+    expect(after!.canChange).toBe(false);
+    await expectDomainError(cancelManaged(res.appointmentId), "INVALID_INPUT");
+  });
+
+  it("premalo vremena do termina: promjena samo telefonom", async () => {
+    const res = await createAppointment(salon, { serviceIds: [haircut], staffId: edin, startsAt: at2("09:00"), client: client(31) }, { mode: "public" });
+    // 30 min prije termina, a salon traži bar 60
+    const appt = await getManagedAppointment(res.appointmentId, new Date(at2("09:00").getTime() - 30 * 60_000));
+    expect(appt!.blockedReason).toBe("too_late");
   });
 });

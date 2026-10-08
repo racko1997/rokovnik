@@ -5,7 +5,12 @@ import { defineConfig } from "vitest/config";
 const dbTests = process.env.DB_TESTS === "1";
 
 export default defineConfig({
-  resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "src"),
+      "server-only": path.resolve(import.meta.dirname, "src/test/server-only.ts"),
+    },
+  },
   test: {
     include: [dbTests ? "src/**/*.db.test.ts" : "src/**/*.test.ts"],
     exclude: dbTests ? [] : ["src/**/*.db.test.ts", "node_modules/**"],

@@ -9,3 +9,5 @@ export * from "./calendar";
 export * from "./client";
 export * from "./conflicts";
 export * from "./move";
+export * from "./manage";
+export * from "./notify";

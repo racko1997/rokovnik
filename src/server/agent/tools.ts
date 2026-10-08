@@ -8,7 +8,15 @@ import { DomainError } from "../errors";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { db } from "../db/client";
 import { appointments } from "../db/schema";
-import { cancelByClient, createAppointment, getAvailability, listUpcomingByPhone, rescheduleByClient } from "../services/booking";
+import { manageUrl } from "../manage-link";
+import {
+  cancelByClient,
+  createAppointment,
+  getAvailability,
+  listUpcomingByPhone,
+  notifyBookingLater,
+  rescheduleByClient,
+} from "../services/booking";
 import type { Salon } from "../services/salons";
 import { type Channel, updateConversation } from "./conversations";
 
@@ -178,8 +186,10 @@ export const TOOLS = {
         { mode: "public" },
       );
       await updateConversation(ctx.conversationId, { clientId: res.clientId });
+      notifyBookingLater(res.appointmentId, "created", { source: ctx.channel });
       return {
         booked: true,
+        manage_link: manageUrl(res.appointmentId),
         date: toLocalDate(res.startsAt, ctx.salon.timezone),
         start: hhmm(toLocalMinutes(res.startsAt, ctx.salon.timezone)),
         end: hhmm(toLocalMinutes(res.endsAt, ctx.salon.timezone)),
@@ -236,14 +246,17 @@ export const TOOLS = {
     },
     run: async (ctx, args) => {
       assertOffered(ctx, args.time);
+      const before = (await listUpcomingByPhone(ctx.salon.id, args.phone)).find((a) => a.appointmentId === args.appointment_id);
       const res = await rescheduleByClient(ctx.salon, {
         appointmentId: args.appointment_id,
         phone: args.phone,
         startsAt: zonedToUtc(args.date, parseHHMM(args.time), ctx.salon.timezone),
         staffId: args.staff_id ?? undefined,
       });
+      notifyBookingLater(args.appointment_id, "rescheduled", { previousStart: before?.startsAt });
       return {
         rescheduled: true,
+        manage_link: manageUrl(args.appointment_id),
         date: toLocalDate(res.startsAt, ctx.salon.timezone),
         start: hhmm(toLocalMinutes(res.startsAt, ctx.salon.timezone)),
         end: hhmm(toLocalMinutes(res.endsAt, ctx.salon.timezone)),
@@ -267,6 +280,7 @@ export const TOOLS = {
     },
     run: async (ctx, args) => {
       await cancelByClient(ctx.salon.id, args.appointment_id, args.phone, args.reason ?? undefined);
+      notifyBookingLater(args.appointment_id, "cancelled");
       return { cancelled: true };
     },
   }),

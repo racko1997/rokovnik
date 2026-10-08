@@ -4,6 +4,7 @@ import { APP_NAME } from "@/lib/brand";
 import { formatPhone } from "@/lib/phone";
 import { toLocalDate } from "@/server/domain/time";
 import { listServices } from "@/server/services/catalog";
+import { canEmailAnyone } from "@/server/notify";
 import { getSalonBySlug } from "@/server/services/salons";
 import { listStaff } from "@/server/services/staff";
 import { BookingFlow } from "./booking-flow";
@@ -45,6 +46,7 @@ export default async function PublicSalonPage({ params }: Props) {
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <BookingFlow
+          emailEnabled={canEmailAnyone()}
           slug={salon.slug}
           today={toLocalDate(new Date(), salon.timezone)}
           currency={salon.currency}
