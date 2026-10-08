@@ -1,5 +1,5 @@
 import { BrandMark } from "@/components/brand-mark";
-import { ROLE_LABEL } from "@/lib/permissions";
+import { can, ROLE_LABEL } from "@/lib/permissions";
 import { getMemberships, requireSalon, requireUser } from "@/server/context";
 import { canEmailAnyone } from "@/server/notify";
 import { MobileTopBar } from "./account-menu";
@@ -51,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           roleLabel={ROLE_LABEL[role]}
           currentSalonId={salon.id}
           salons={memberships.map((m) => ({ id: m.salon.id, name: m.salon.name }))}
+          showSettings={can(role, "manageSettings")}
         />
         {/* Dok slanje mailova nije uključeno (nema domena), nema smisla tražiti potvrdu */}
         {canEmailAnyone() && !user.emailVerified && <VerifyEmailBanner email={user.email} />}

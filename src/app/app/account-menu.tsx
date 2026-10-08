@@ -1,7 +1,7 @@
 "use client";
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { Check, ExternalLink, LogOut } from "lucide-react";
+import { Check, ExternalLink, LogOut, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -21,6 +21,7 @@ export function MobileTopBar({
   roleLabel,
   salons,
   currentSalonId,
+  showSettings,
 }: {
   salonName: string;
   salonSlug: string;
@@ -29,6 +30,8 @@ export function MobileTopBar({
   roleLabel: string;
   salons: { id: string; name: string }[];
   currentSalonId: string;
+  /** Postavke su na telefonu ovdje, ne u donjoj traci */
+  showSettings: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -84,6 +87,13 @@ export function MobileTopBar({
               </>
             )}
             <Menu.Separator className="my-1 h-px bg-line" />
+            {showSettings && (
+              <Menu.Item asChild className={item}>
+                <Link href="/app/postavke">
+                  <Settings2 size={16} className="text-ink-soft" /> Postavke salona
+                </Link>
+              </Menu.Item>
+            )}
             <Menu.Item asChild className={item}>
               <a href={`/s/${salonSlug}`} target="_blank" rel="noreferrer">
                 <ExternalLink size={16} className="text-ink-soft" /> Stranica za klijente

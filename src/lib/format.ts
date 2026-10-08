@@ -4,9 +4,9 @@ const CURRENCY_LABEL: Record<string, string> = { BAM: "KM", EUR: "€", RSD: "di
 
 export function formatPrice(cents: number, currency = "BAM", from = false): string {
   const amount = cents / 100;
-  const value = Number.isInteger(amount)
-    ? String(amount)
-    : amount.toFixed(2).replace(".", ",");
+  // 1.370 KM, 12,50 KM — tačka za hiljade, zarez za decimale
+  const [whole, dec] = (Number.isInteger(amount) ? String(amount) : amount.toFixed(2)).split(".");
+  const value = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + (dec ? `,${dec}` : "");
   return `${from ? "od " : ""}${value} ${CURRENCY_LABEL[currency] ?? currency}`;
 }
 

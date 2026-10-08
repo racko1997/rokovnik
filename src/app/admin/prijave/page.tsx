@@ -10,6 +10,9 @@ import { NoAdminAccess } from "./no-access";
 
 export const metadata: Metadata = { title: "Prijave za pilot", robots: { index: false } };
 
+// Obnova demo salona upisuje nekoliko stotina termina
+export const maxDuration = 120;
+
 export default async function LeadsPage() {
   const access = await platformAdminAccess();
   if (!access.ok) return <NoAdminAccess email={access.user.email} configured={access.configured} />;

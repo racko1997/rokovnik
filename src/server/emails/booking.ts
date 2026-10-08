@@ -14,10 +14,12 @@ interface Details {
 
 const SOURCE_LABEL: Record<string, string> = {
   online: "online stranice",
-  web_chat: "AI chata",
+  chat: "AI chata",
   instagram: "Instagrama",
+  messenger: "Messengera",
   whatsapp: "WhatsAppa",
   viber: "Vibera",
+  voice: "telefonskog recepcionera",
 };
 
 const when = (d: Details) => formatInstant(d.startsAt, d.timezone, { time: true });

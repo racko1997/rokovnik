@@ -1,18 +1,20 @@
 "use client";
 
 import { clsx } from "clsx";
-import { CalendarDays, Contact, MessagesSquare, Scissors, Settings2, UsersRound } from "lucide-react";
+import { ChartColumn, CalendarDays, Contact, MessagesSquare, Scissors, Settings2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { can, type Permission, type Role } from "@/lib/permissions";
 
-const ALL_ITEMS: { href: string; label: string; icon: typeof CalendarDays; needs?: Permission }[] = [
+// `desktopOnly`: na telefonu je u meniju naloga (gore desno), da donja traka ne bude pretijesna
+const ALL_ITEMS: { href: string; label: string; icon: typeof CalendarDays; needs?: Permission; desktopOnly?: boolean }[] = [
   { href: "/app/kalendar", label: "Kalendar", icon: CalendarDays },
   { href: "/app/klijenti", label: "Klijenti", icon: Contact },
   { href: "/app/razgovori", label: "Razgovori", icon: MessagesSquare },
   { href: "/app/usluge", label: "Usluge", icon: Scissors, needs: "manageCatalog" },
   { href: "/app/radnici", label: "Radnici", icon: UsersRound },
-  { href: "/app/postavke", label: "Postavke", icon: Settings2, needs: "manageSettings" },
+  { href: "/app/analitika", label: "Analitika", icon: ChartColumn, needs: "viewRevenue" },
+  { href: "/app/postavke", label: "Postavke", icon: Settings2, needs: "manageSettings", desktopOnly: true },
 ];
 
 const itemsFor = (role: Role) => ALL_ITEMS.filter((i) => !i.needs || can(role, i.needs));
@@ -45,7 +47,7 @@ export function AppNav({ className, role }: { className?: string; role: Role }) 
 
 export function MobileNav({ role }: { role: Role }) {
   const pathname = usePathname();
-  const ITEMS = itemsFor(role);
+  const ITEMS = itemsFor(role).filter((i) => !i.desktopOnly);
   return (
     <nav
       style={{ gridTemplateColumns: `repeat(${ITEMS.length}, minmax(0, 1fr))` }}
