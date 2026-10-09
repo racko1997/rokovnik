@@ -1,0 +1,119 @@
+# Noćna kopija produkcijske baze (Supabase besplatni plan nema backup).
+# Kopija se šifruje (AES-256) prije nego napusti runner — repozitorij je javan i
+# artefakte mogu skinuti i drugi, ali bez lozinke su bezvrijedni. Čuva se 30 dana.
+#
+# Potrebne tajne (Settings → Secrets and variables → Actions):
+#   PROD_DATABASE_URL  — Supabase "Session pooler" adresa produkcijske baze (port 5432)
+#   BACKUP_PASSPHRASE  — duga lozinka za šifrovanje; sačuvaj je i u password manageru
+#
+# Kad se ovaj fajl ili skripta promijene, "proba" napravi kopiju privremene baze i
+# vrati je u praznu — da znamo da se iz kopije stvarno može vratiti.
+# Vraćanje: docs/pokretanje-produkcije.md → "Vraćanje iz kopije".
+name: Backup baze
+
+on:
+  schedule:
+    - cron: "15 2 * * *" # svaku noć u 02:15 UTC (03:15/04:15 kod nas)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/backup.yml
+      - scripts/backup.sh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_URL: ${{ secrets.PROD_DATABASE_URL }}
+      PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Provjera tajni
+        id: check
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$PASSPHRASE" ]; then
+            echo "::warning::PROD_DATABASE_URL ili BACKUP_PASSPHRASE nije postavljen — backup preskočen."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Kopija i šifrovanje
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          echo "STAMP=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+          bash scripts/backup.sh "rokovnik-$(date -u +%Y-%m-%d).dump.gpg"
+
+      - name: Spremanje (30 dana)
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rokovnik-${{ env.STAMP }}
+          path: rokovnik-${{ env.STAMP }}.dump.gpg
+          retention-days: 30
+          if-no-files-found: error
+
+  proba:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rokovnik
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/rokovnik
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/rokovnik
+      DB_URL: postgres://postgres:postgres@localhost:5432/rokovnik
+      PASSPHRASE: proba-samo-za-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Šema i nešto podataka
+        run: |
+          npx drizzle-kit migrate
+          docker run --rm --network host postgres:17 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "
+            insert into salons (slug, name) values ('proba', 'Proba salon');
+            insert into clients (salon_id, name, phone) select id, 'Ana Proba', '+38761000111' from salons where slug = 'proba';"
+      - name: Kopija i šifrovanje
+        run: bash scripts/backup.sh proba.dump.gpg
+      - name: Vraćanje u praznu bazu i poređenje
+        run: |
+          set -euo pipefail
+          gpg --batch --pinentry-mode loopback --passphrase "$PASSPHRASE" --decrypt proba.dump.gpg > proba.dump
+          docker run --rm --network host postgres:17 psql "postgres://postgres:postgres@localhost:5432/postgres" -c "create database vraceno"
+          docker run --rm --network host -v "$PWD:/b" postgres:17 \
+            pg_restore --no-owner --no-privileges --dbname "postgres://postgres:postgres@localhost:5432/vraceno" /b/proba.dump
+          q="select (select count(*) from salons) || '/' || (select count(*) from clients) || '/' || (select count(*) from drizzle.__drizzle_migrations)"
+          a=$(docker run --rm --network host postgres:17 psql "$DB_URL" -tAc "$q")
+          b=$(docker run --rm --network host postgres:17 psql "postgres://postgres:postgres@localhost:5432/vraceno" -tAc "$q")
+          echo "original: $a  vraćeno: $b"
+          [ "$a" = "$b" ]
+          # I sigurnosna pravila (RLS) moraju preživjeti vraćanje
+          rls=$(docker run --rm --network host postgres:17 psql "postgres://postgres:postgres@localhost:5432/vraceno" -tAc \
+            "select count(*) from pg_tables where schemaname = 'public' and not rowsecurity")
+          echo "Tabela bez RLS: $rls"
+          [ "$rls" = "0" ]
