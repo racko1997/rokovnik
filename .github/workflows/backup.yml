@@ -8,18 +8,29 @@
 #
 # Kad se ovaj fajl ili skripta promijene, "proba" napravi kopiju privremene baze i
 # vrati je u praznu — da znamo da se iz kopije stvarno može vratiti.
-# Vraćanje: docs/pokretanje-produkcije.md → "Vraćanje iz kopije".
+# Vraćanje: Actions → "Backup baze" → Run workflow → akcija "vrati" (vidi docs/pokretanje-produkcije.md).
+#   RESTORE_DATABASE_URL — tajna s adresom PRAZNE baze u koju se vraća (postavlja se tek tada)
 name: Backup baze
 
 on:
   schedule:
     - cron: "15 2 * * *" # svaku noć u 02:15 UTC (03:15/04:15 kod nas)
   workflow_dispatch:
+    inputs:
+      akcija:
+        description: "backup = napravi kopiju sad; vrati = vrati kopiju u RESTORE_DATABASE_URL"
+        type: choice
+        options: [backup, vrati]
+        default: backup
+      run_id:
+        description: "Za vraćanje: broj posla (run ID) noćnog backupa iz kojeg se vraća"
+        required: false
   push:
     branches: [main]
     paths:
       - .github/workflows/backup.yml
       - scripts/backup.sh
+      - scripts/restore.sh
 
 permissions:
   contents: read
@@ -30,7 +41,7 @@ concurrency:
 
 jobs:
   backup:
-    if: github.event_name != 'push'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.akcija == 'backup')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -103,17 +114,40 @@ jobs:
       - name: Vraćanje u praznu bazu i poređenje
         run: |
           set -euo pipefail
-          gpg --batch --pinentry-mode loopback --passphrase "$PASSPHRASE" --decrypt proba.dump.gpg > proba.dump
           docker run --rm --network host postgres:17 psql "postgres://postgres:postgres@localhost:5432/postgres" -c "create database vraceno"
-          docker run --rm --network host -v "$PWD:/b" postgres:17 \
-            pg_restore --no-owner --no-privileges --dbname "postgres://postgres:postgres@localhost:5432/vraceno" /b/proba.dump
+          TARGET_URL=postgres://postgres:postgres@localhost:5432/vraceno bash scripts/restore.sh proba.dump.gpg
           q="select (select count(*) from salons) || '/' || (select count(*) from clients) || '/' || (select count(*) from drizzle.__drizzle_migrations)"
           a=$(docker run --rm --network host postgres:17 psql "$DB_URL" -tAc "$q")
           b=$(docker run --rm --network host postgres:17 psql "postgres://postgres:postgres@localhost:5432/vraceno" -tAc "$q")
           echo "original: $a  vraćeno: $b"
           [ "$a" = "$b" ]
-          # I sigurnosna pravila (RLS) moraju preživjeti vraćanje
-          rls=$(docker run --rm --network host postgres:17 psql "postgres://postgres:postgres@localhost:5432/vraceno" -tAc \
-            "select count(*) from pg_tables where schemaname = 'public' and not rowsecurity")
-          echo "Tabela bez RLS: $rls"
-          [ "$rls" = "0" ]
+          # I sigurnosna pravila (RLS) i zaštita od duplih termina moraju preživjeti vraćanje
+          v="postgres://postgres:postgres@localhost:5432/vraceno"
+          rls=$(docker run --rm --network host postgres:17 psql "$v" -tAc "select count(*) from pg_tables where schemaname = 'public' and not rowsecurity")
+          excl=$(docker run --rm --network host postgres:17 psql "$v" -tAc "select count(*) from pg_constraint where contype = 'x'")
+          echo "Tabela bez RLS: $rls, zaštita od preklapanja: $excl"
+          [ "$rls" = "0" ] && [ "$excl" -ge 1 ]
+
+  vrati:
+    if: github.event_name == 'workflow_dispatch' && inputs.akcija == 'vrati'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+    env:
+      TARGET_URL: ${{ secrets.RESTORE_DATABASE_URL }}
+      PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provjera
+        run: |
+          [ -n "$TARGET_URL" ] || { echo "::error::Postavi tajnu RESTORE_DATABASE_URL (prazna baza za vraćanje)."; exit 1; }
+          [ -n "${{ inputs.run_id }}" ] || { echo "::error::Upiši run_id noćnog backupa."; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: kopija
+          merge-multiple: true
+      - name: Vraćanje
+        run: bash scripts/restore.sh "$(ls kopija/*.dump.gpg | head -1)"
