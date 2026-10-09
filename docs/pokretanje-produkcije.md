@@ -11,7 +11,8 @@ Sadašnja baza ostaje za razvoj i testove. Pravi saloni dobijaju svoju.
    - Name: `rokovnik-prod`
    - Region: **West EU (Ireland)**, ista kao Vercel funkcije (`dub1`)
    - Database password: generiši jaku lozinku i sačuvaj je u password manageru
-2. Organizacija → **Billing** → prebaci na **Pro** (dnevni backup podataka)
+2. Plan: za pilot je dovoljan **besplatni**. Backup radi naš noćni posao (korak 8). Na **Pro**
+   (25 $ mjesečno) prelazimo kad bude 3–5 aktivnih salona ili kad počne naplata; prelazak je jedan klik
 3. Projekat → **Connect** → kartica **Session pooler** → kopiraj adresu (port **5432**,
    ne 6543), pa u nju upiši lozinku umjesto `[YOUR-PASSWORD]`
 4. Project Settings → Database → **Pool size: 40**
@@ -67,3 +68,26 @@ platform.openai.com:
 - **Settings → Limits** → mjesečni limit potrošnje (npr. 20 $) i upozorenje na 50 %
 - Za Rokovnik napravi **poseban API ključ**, odvojen od Codex-a, pa ga stavi u `OPENAI_API_KEY`
   na Vercelu i lokalno u `.env`
+
+## 8. Noćni backup baze
+
+Besplatni Supabase nema backup, pa svaku noć GitHub napravi šifrovanu kopiju i čuva je 30 dana.
+
+1. Smisli dugu lozinku za šifrovanje (npr. 5–6 nasumičnih riječi) i **sačuvaj je u password manageru**.
+   Bez nje se kopija ne može otvoriti, ni ti ni bilo ko drugi.
+2. GitHub → repozitorij → **Settings → Secrets and variables → Actions → New repository secret**:
+   - `PROD_DATABASE_URL`: ista adresa kao `DATABASE_URL` na Vercelu (iz koraka 1.3)
+   - `BACKUP_PASSPHRASE`: lozinka iz tačke 1
+3. **Actions → Backup baze → Run workflow** (akcija `backup`): za minut-dva treba biti zeleno, a dolje
+   pod *Artifacts* stoji `rokovnik-<datum>`. Od tada radi svaku noć sam; ako ikad padne, GitHub ti šalje mail.
+
+### Vraćanje iz kopije (ako ikad zatreba)
+
+1. Napravi **novi, prazan** Supabase projekat i kopiraj njegovu Session pooler adresu
+2. Dodaj tajnu `RESTORE_DATABASE_URL` s tom adresom
+3. **Actions → Backup baze** → otvori noćni posao od dana koji vraćaš i iz adrese kopiraj broj posla
+   (`…/actions/runs/`**`1234567890`**)
+4. **Run workflow** → akcija `vrati`, `run_id` = taj broj
+5. Kad je zeleno, na Vercelu postavi `DATABASE_URL` i `DIRECT_URL` na novu bazu i uradi Redeploy
+
+Isti postupak se automatski isproba na svaku izmjenu backupa, pa znamo da radi.
