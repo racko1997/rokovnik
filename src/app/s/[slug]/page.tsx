@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/json-ld";
+import { appUrl } from "@/lib/app-url";
 import { APP_NAME } from "@/lib/brand";
 import { formatPhone } from "@/lib/phone";
 import { toLocalDate } from "@/server/domain/time";
@@ -17,8 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const salon = await getSalonBySlug((await params).slug);
   if (!salon) return {};
   return {
-    title: `Zakažite termin — ${salon.name}`,
-    description: salon.about ?? `Online zakazivanje termina u salonu ${salon.name}${salon.city ? `, ${salon.city}` : ""}.`,
+    title: `${salon.name}${salon.city ? `, ${salon.city}` : ""} — zakažite termin online`,
+    description: salon.about ?? `Online zakazivanje termina u salonu ${salon.name}${salon.city ? `, ${salon.city}` : ""}. Odaberite uslugu, radnika i slobodan termin.`,
+    alternates: { canonical: `/s/${salon.slug}` },
   };
 }
 
@@ -30,8 +33,44 @@ export default async function PublicSalonPage({ params }: Props) {
   const bookable = staff.filter((s) => s.bookableOnline);
   const bookableIds = new Set(bookable.map((s) => s.id));
 
+  // Google: salon kao lokalni posao s adresom, telefonom, cjenovnikom i online zakazivanjem
+  const url = `${appUrl() || "http://localhost:3100"}/s/${salon.slug}`;
+  const structured = {
+    "@context": "https://schema.org",
+    "@type": "BeautySalon",
+    name: salon.name,
+    url,
+    ...(salon.about && { description: salon.about }),
+    ...(salon.phone && { telephone: salon.phone }),
+    ...((salon.address || salon.city) && {
+      address: {
+        "@type": "PostalAddress",
+        ...(salon.address && { streetAddress: salon.address }),
+        ...(salon.city && { addressLocality: salon.city }),
+        addressCountry: "BA",
+      },
+    }),
+    currenciesAccepted: salon.currency,
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Usluge",
+      itemListElement: services.slice(0, 50).map((sv) => ({
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: sv.name },
+        priceSpecification: {
+          "@type": "PriceSpecification",
+          price: (sv.priceCents / 100).toFixed(2),
+          priceCurrency: salon.currency,
+          ...(sv.priceFrom && { minPrice: (sv.priceCents / 100).toFixed(2) }),
+        },
+      })),
+    },
+    potentialAction: { "@type": "ReserveAction", target: url, name: "Zakažite termin" },
+  };
+
   return (
     <div className="min-h-dvh">
+      <JsonLd data={structured} />
       <header className="border-b border-line bg-paper/70">
         <div className="mx-auto max-w-5xl px-4 pt-8 pb-6 sm:px-6 sm:pt-12">
           <p className="text-sm text-ink-soft">{[salon.city, salon.address].filter(Boolean).join(" · ")}</p>

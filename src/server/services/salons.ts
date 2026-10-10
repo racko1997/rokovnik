@@ -1,8 +1,9 @@
-import { eq, like } from "drizzle-orm";
+import { and, eq, like, notLike } from "drizzle-orm";
+import { cache } from "react";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import { db } from "../db/client";
-import { salonMembers, salons } from "../db/schema";
+import { salonMembers, salons, services } from "../db/schema";
 import { DomainError } from "../errors";
 
 export type Salon = typeof salons.$inferSelect;
@@ -45,8 +46,18 @@ async function uniqueSlug(base: string): Promise<string> {
 
 const RESERVED_SLUGS = new Set(["api", "app", "admin", "prijava", "registracija", "novi-salon"]);
 
-export async function getSalonBySlug(slug: string): Promise<Salon | undefined> {
+// cache: metapodaci i stranica salona traže isti salon u istom zahtjevu — jedan upit
+export const getSalonBySlug = cache(async (slug: string): Promise<Salon | undefined> => {
   return db.query.salons.findFirst({ where: eq(salons.slug, slug) });
+});
+
+/** Saloni za mapu stranica: imaju bar jednu uslugu za online zakazivanje (bez praznih i testnih). */
+export async function listPublicSalons() {
+  return db
+    .selectDistinct({ slug: salons.slug, updatedAt: salons.updatedAt })
+    .from(salons)
+    .innerJoin(services, and(eq(services.salonId, salons.id), eq(services.bookableOnline, true)))
+    .where(notLike(salons.slug, "test-%"));
 }
 
 export const salonSettingsInput = z.object({

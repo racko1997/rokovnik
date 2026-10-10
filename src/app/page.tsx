@@ -8,11 +8,14 @@ import { LandingMobileMenu } from "@/components/landing/landing-mobile-menu";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { AgentVisual, BookingVisual, ShiftsVisual } from "@/components/landing/visuals";
+import { JsonLd } from "@/components/json-ld";
 import { ButtonLink } from "@/components/ui/button";
+import { appUrl } from "@/lib/app-url";
 import { APP_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} — zakazivanje i AI recepcioner za salone`,
+  title: `${APP_NAME} — online zakazivanje i AI recepcioner za frizerske i kozmetičke salone`,
+  alternates: { canonical: "/" },
   description:
     "Kalendar za cijeli salon, online zakazivanje preko linka i AI recepcioner koji odgovara klijentima na poruke. Za frizerske i kozmetičke salone u BiH.",
 };
@@ -75,6 +78,7 @@ export default function Home() {
   return (
     <div className="min-h-dvh overflow-x-clip">
       <ScrollReveal />
+      <JsonLd data={structuredData()} />
       <header className="sticky top-0 z-40 border-b border-transparent bg-porcelain/85 backdrop-blur supports-[backdrop-filter]:bg-porcelain/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <BrandMark />
@@ -395,4 +399,23 @@ function Feature({
       <div data-reveal="scale" className={`${reverse ? "lg:order-1" : ""} reveal-delay-1`}>{visual}</div>
     </div>
   );
+}
+
+/** Google: ime sajta ("Rokovnik", ne domena), ko stoji iza i šta je proizvod. */
+function structuredData() {
+  const url = `${appUrl() || "http://localhost:3100"}/`;
+  return [
+    { "@context": "https://schema.org", "@type": "WebSite", name: APP_NAME, url, inLanguage: "bs" },
+    { "@context": "https://schema.org", "@type": "Organization", name: APP_NAME, url, logo: `${url}apple-icon` },
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: APP_NAME,
+      url,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description: metadata.description,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "BAM", description: "Besplatno tokom pilot programa" },
+    },
+  ];
 }
