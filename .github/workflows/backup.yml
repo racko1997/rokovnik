@@ -48,25 +48,24 @@ jobs:
       DB_URL: ${{ secrets.PROD_DATABASE_URL }}
       PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Provjera tajni
         id: check
         run: |
           if [ -z "$DB_URL" ] || [ -z "$PASSPHRASE" ]; then
-            echo "::warning::PROD_DATABASE_URL ili BACKUP_PASSPHRASE nije postavljen — backup preskočen."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+            # Bez tajni nema kopije — crveno, da GitHub pošalje mail, a ne tiho "uspješno"
+            echo "::error::PROD_DATABASE_URL ili BACKUP_PASSPHRASE nije postavljen — kopija NIJE napravljena."
+            exit 1
           fi
 
       - name: Kopija i šifrovanje
-        if: steps.check.outputs.skip != 'true'
         run: |
           echo "STAMP=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
           bash scripts/backup.sh "rokovnik-$(date -u +%Y-%m-%d).dump.gpg"
 
       - name: Spremanje (30 dana)
-        if: steps.check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: rokovnik-${{ env.STAMP }}
           path: rokovnik-${{ env.STAMP }}.dump.gpg
@@ -97,8 +96,8 @@ jobs:
       DB_URL: postgres://postgres:postgres@localhost:5432/rokovnik
       PASSPHRASE: proba-samo-za-ci
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -138,12 +137,12 @@ jobs:
       TARGET_URL: ${{ secrets.RESTORE_DATABASE_URL }}
       PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Provjera
         run: |
           [ -n "$TARGET_URL" ] || { echo "::error::Postavi tajnu RESTORE_DATABASE_URL (prazna baza za vraćanje)."; exit 1; }
           [ -n "${{ inputs.run_id }}" ] || { echo "::error::Upiši run_id noćnog backupa."; exit 1; }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
