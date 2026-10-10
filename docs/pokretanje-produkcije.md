@@ -91,3 +91,12 @@ Besplatni Supabase nema backup, pa svaku noć GitHub napravi šifrovanu kopiju i
 5. Kad je zeleno, na Vercelu postavi `DATABASE_URL` i `DIRECT_URL` na novu bazu i uradi Redeploy
 
 Isti postupak se automatski isproba na svaku izmjenu backupa, pa znamo da radi.
+
+## 9. Google (Search Console)
+
+Da Google brže pronađe sajt i stranice salona:
+
+1. search.google.com/search-console → **Add property** → **Domain** → `mojrokovnik.com`
+2. Google pokaže TXT zapis → upiši ga u DNS kod registra domene → **Verify**
+3. **Sitemaps** → upiši `sitemap.xml` → **Submit**
+4. Za par dana se vide pretrage po kojima ljudi dolaze i eventualne greške na stranicama
