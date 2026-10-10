@@ -1,0 +1,1 @@
+ALTER TABLE "salons" ADD COLUMN "sandbox_expires_at" timestamp with time zone;

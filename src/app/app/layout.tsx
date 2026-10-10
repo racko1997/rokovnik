@@ -5,6 +5,7 @@ import { canEmailAnyone } from "@/server/notify";
 import { MobileTopBar } from "./account-menu";
 import { AppNav, MobileNav } from "./nav";
 import { SalonSwitcher } from "./salon-switcher";
+import { SandboxBanner } from "./sandbox-banner";
 import { SignOutButton } from "./sign-out-button";
 import { VerifyEmailBanner } from "./verify-email-banner";
 
@@ -53,11 +54,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           salons={memberships.map((m) => ({ id: m.salon.id, name: m.salon.name }))}
           showSettings={can(role, "manageSettings")}
         />
-        {/* Dok slanje mailova nije uključeno (nema domena), nema smisla tražiti potvrdu */}
-        {canEmailAnyone() && !user.emailVerified && <VerifyEmailBanner email={user.email} />}
+        {salon.sandboxExpiresAt ? (
+          <SandboxBanner hoursLeft={hoursUntil(salon.sandboxExpiresAt)} />
+        ) : (
+          // Dok slanje mailova nije uključeno (nema domena), nema smisla tražiti potvrdu
+          canEmailAnyone() && !user.emailVerified && <VerifyEmailBanner email={user.email} />
+        )}
         {children}
       </div>
       <MobileNav role={role} />
     </div>
   );
+}
+
+/** Koliko je cijelih sati ostalo do isteka probnog salona (server, pri svakom učitavanju). */
+function hoursUntil(at: Date): number {
+  return Math.max(0, Math.ceil((at.getTime() - Date.now()) / 3_600_000));
 }

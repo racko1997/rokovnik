@@ -1,4 +1,4 @@
-import { and, eq, like, notLike } from "drizzle-orm";
+import { and, eq, isNull, like, notLike } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
@@ -57,7 +57,7 @@ export async function listPublicSalons() {
     .selectDistinct({ slug: salons.slug, updatedAt: salons.updatedAt })
     .from(salons)
     .innerJoin(services, and(eq(services.salonId, salons.id), eq(services.bookableOnline, true)))
-    .where(notLike(salons.slug, "test-%"));
+    .where(and(notLike(salons.slug, "test-%"), isNull(salons.sandboxExpiresAt)));
 }
 
 export const salonSettingsInput = z.object({

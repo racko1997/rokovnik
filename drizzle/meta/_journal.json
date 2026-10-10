@@ -78,6 +78,13 @@
       "when": 1791214454426,
       "tag": "0010_service_colors",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791633015076,
+      "tag": "0011_sandbox_salons",
+      "breakpoints": true
     }
   ]
 }

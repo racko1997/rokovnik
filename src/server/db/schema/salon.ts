@@ -65,6 +65,8 @@ export const salons = pgTable("salons", {
   slotIntervalMin: integer().notNull().default(15),
   minLeadMin: integer().notNull().default(60),
   maxAdvanceDays: integer().notNull().default(60),
+  /** Probni salon ("Isprobaj bez registracije"): briše se zajedno s probnim nalogom nakon ovog trenutka */
+  sandboxExpiresAt: timestamp(tz),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

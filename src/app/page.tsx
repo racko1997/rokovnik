@@ -7,6 +7,7 @@ import { LandingAuthLinks } from "@/components/landing/landing-auth-links";
 import { LandingMobileMenu } from "@/components/landing/landing-mobile-menu";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
+import { TryDemoButton } from "@/components/landing/try-demo-button";
 import { AgentVisual, BookingVisual, ShiftsVisual } from "@/components/landing/visuals";
 import { JsonLd } from "@/components/json-ld";
 import { ButtonLink } from "@/components/ui/button";
@@ -116,11 +117,9 @@ export default function Home() {
               po vašem cjenovniku i stvarnim slobodnim terminima.
             </p>
             <div className="mt-8 grid gap-3 sm:inline-grid sm:grid-cols-2">
-              <ButtonLink href="/registracija" size="lg" className="w-full">
-                Postavi salon za 5 minuta
-              </ButtonLink>
-              <ButtonLink href="/s/studio-lana" size="lg" variant="secondary" className="w-full">
-                Probaj kao klijent
+              <TryDemoButton />
+              <ButtonLink href="/registracija" size="lg" variant="secondary" className="w-full">
+                Otvori svoj salon
               </ButtonLink>
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
@@ -178,6 +177,7 @@ export default function Home() {
               "Vi određujete koliko unaprijed se može zakazati",
             ]}
             visual={<BookingVisual />}
+            link={{ href: "/s/studio-lana", label: "Pogledaj kako klijent zakazuje →" }}
           />
         </section>
 
@@ -324,14 +324,12 @@ export default function Home() {
           <div data-reveal="up" className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">Manje telefoniranja. Više vremena za klijenta u stolici.</h2>
             <div className="grid w-full shrink-0 gap-3 sm:w-auto sm:grid-cols-2">
-              <ButtonLink href="/registracija" size="lg" className="w-full">
-                Postavi salon za 5 minuta
-              </ButtonLink>
+              <TryDemoButton />
               <Link
-                href="/s/studio-lana"
+                href="/registracija"
                 className="inline-flex h-12 w-full items-center justify-center rounded-full px-6 font-medium text-porcelain/85 ring-1 ring-white/25 transition-colors hover:text-white hover:ring-white/50"
               >
-                Probaj kao klijent
+                Otvori svoj salon
               </Link>
             </div>
           </div>
@@ -373,6 +371,7 @@ function Feature({
   points,
   visual,
   reverse,
+  link,
 }: {
   eyebrow: string;
   title: string;
@@ -380,6 +379,7 @@ function Feature({
   points: string[];
   visual: React.ReactNode;
   reverse?: boolean;
+  link?: { href: string; label: string };
 }) {
   return (
     <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
@@ -395,6 +395,11 @@ function Feature({
             </li>
           ))}
         </ul>
+        {link && (
+          <Link href={link.href} className="mt-6 inline-block font-medium text-lacquer underline-offset-4 hover:underline">
+            {link.label}
+          </Link>
+        )}
       </div>
       <div data-reveal="scale" className={`${reverse ? "lg:order-1" : ""} reveal-delay-1`}>{visual}</div>
     </div>

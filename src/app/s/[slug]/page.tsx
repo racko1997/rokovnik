@@ -22,6 +22,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${salon.name}${salon.city ? `, ${salon.city}` : ""} — zakažite termin online`,
     description: salon.about ?? `Online zakazivanje termina u salonu ${salon.name}${salon.city ? `, ${salon.city}` : ""}. Odaberite uslugu, radnika i slobodan termin.`,
     alternates: { canonical: `/s/${salon.slug}` },
+    // Probni saloni žive 24 sata — ne trebaju u pretragama
+    ...(salon.sandboxExpiresAt && { robots: { index: false, follow: false } }),
   };
 }
 

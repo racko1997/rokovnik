@@ -7,7 +7,9 @@ import * as Sentry from "@sentry/nextjs";
  */
 export async function sendEmail(msg: { to: string[]; subject: string; text: string }): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
-  if (!key || !msg.to.length) return false;
+  // .test adrese (demo i probni nalozi) ne postoje — slanje bi samo kvarilo ugled domene
+  const to = msg.to.filter((e) => !e.toLowerCase().endsWith(".test"));
+  if (!key || !to.length) return false;
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -15,7 +17,7 @@ export async function sendEmail(msg: { to: string[]; subject: string; text: stri
       body: JSON.stringify({
         // Bez vlastitog domena Resend dozvoljava slanje samo na email vlasnika naloga
         from: process.env.EMAIL_FROM || "Rokovnik <onboarding@resend.dev>",
-        to: msg.to,
+        to,
         subject: msg.subject,
         text: msg.text,
       }),
